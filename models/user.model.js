@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         enum: ["Donor","NGO","Admin"],
-        default: "user",
     },
 
     // if role is NGO, then this field will be used for find the person designsation in NGO who is resgistering.
