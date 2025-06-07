@@ -52,7 +52,19 @@ const projectSchema = new mongoose.Schema({
         type: String,
         enum: ['ongoing', 'completed', 'planned'],
         default: 'planned'
-    }
+    },
+    images:[{
+        type: String,
+        trim: true
+    }],
+    videos:[{
+        type: String,
+        trim: true
+    }],
+    collaborators: [{
+        type:String,
+        trim: true
+    }],
 });
 
 // Define the donors schema
