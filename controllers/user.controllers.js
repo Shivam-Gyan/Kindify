@@ -1,26 +1,28 @@
-import userServices from "../services/user.svc";
-import Validation from "../utils/validation.utlis";
+import userServices from "../services/user.svc.js";
+import Validation from "../utils/validation.utlis.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 const userController = {
 
+
+    // function for usniversal user registration irrespective of role
     registerUser: async (req, res) => {
 
         try {
-           
+
             // destructure the email, password and role from the request body
-            const { email, password, role } = req.body;
+            let { name, email, password, role } = req.body;
 
             // check if email, password and role are provided
-            if(!email || !password || !role) {
+            if (!name || !email || !password || !role) {
                 throw new Error("all fields are required");
             }
             // check if role is valid
-            const checkUserExistsWithEmail= await userServices.checkUserExistsWithEmail(email);
+            const checkUserExistsWithEmail = await userServices.checkUserExistsWithEmail(email);
 
             // if user with email already exists, then return error
-            if(checkUserExistsWithEmail){
+            if (checkUserExistsWithEmail) {
                 throw new Error("User with this email already exists");
             }
 
@@ -28,18 +30,25 @@ const userController = {
             const passwordValidation = Validation.passwordValidation(password);
 
             // if password is not valid, then return error
-            if(!passwordValidation.valid) {
+            if (!passwordValidation.valid) {
                 throw new Error(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
             }
 
+            password = await bcrypt.salt(10,async(error,salt)=>{
+                if (error) {
+                    throw new Error("Error generating salt for password hashing");
+                }
+                return await bcrypt.hash(password, salt);
+            });
+
             // declaring the donor variable here to use it globally in try block
-            let donor=null;
-            
+            let donor = null;
+
             // if role is donor, then call the loginDonor service
-            if(role === 'donor'){
-                donor = await userServices.registerDonor({ email, password });
-                if(!donor) {
-                   throw new Error("Invalid email or password");
+            if (role === 'donor') {
+                donor = await userServices.registerDonor({name, email, password });
+                if (!donor) {
+                    throw new Error("Invalid email or password");
                 }
             }
 
@@ -47,13 +56,22 @@ const userController = {
             let ngo = null;
 
             // if role is ngo, then handle NGO registration logic
-            if(role === 'ngo'){
+            if (role === 'ngo') {
                 // handle NGO registration logic here
                 // for now, just return a success message
                 return res.status(200).json({ message: "NGO registered successfully" });
             }
 
-            return res.status(200).json({ message: "registeration successful", registerData: donor || ngo });
+            const token = jwt.sign(
+                {
+                    email:email,
+                    role: role
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: "24h" }
+            );
+
+            return res.status(200).json({ message: "registeration successful", registerData: donor || ngo, token });
 
         } catch (error) {
             console.error("Error in registerUser controller:", error.message);
@@ -61,6 +79,8 @@ const userController = {
         }
 
     },
+
+    // function for universal user login irrespective of role
     LoginUser: async (req, res) => {
 
     },
