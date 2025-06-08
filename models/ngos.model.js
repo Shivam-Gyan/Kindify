@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 
 
 // Define the documents schema
@@ -204,4 +203,6 @@ const ngoSchema = new mongoose.Schema({
     
 },{timestamps: true});
 
-module.exports = mongoose.model('NGO', ngoSchema);
+const NgoModel = mongoose.model('NGO', ngoSchema);
+
+export default NgoModel;

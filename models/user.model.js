@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["Donor","NGO","Admin"],
+        enum: ["donor","ngo","admin"],
     },
 
     // if role is NGO, then this field will be used for find the person designsation in NGO who is resgistering.
@@ -56,5 +56,6 @@ const userSchema = new mongoose.Schema({
 },{timestamps: true});
 
 
-const User = mongoose.model("User", userSchema);
-export default User;
+const UserModel = mongoose.model("User", userSchema);
+
+export default UserModel;
