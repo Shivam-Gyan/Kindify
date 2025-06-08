@@ -1,15 +1,24 @@
-import UserModel from "../models/user.model";
+import UserModel from "../models/user.model.js";
 
 const userServices={
 
     registerDonor:async(data)=>{
         try{
-            const {email,password}= data;
+            const {name, email,password}= data;
 
-            if(!email || !password){
+            if(!name || !email || !password){
                 throw new Error("Email and password are required");
             }
+            
 
+            const donor= await UserModel.create({
+                name:name,
+                email: email,
+                password: password,
+                role: "donor"
+            });
+
+            return donor;
 
         }catch(error){
             throw new Error("Error in loginDonor service: " + error.message);

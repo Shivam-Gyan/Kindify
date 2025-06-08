@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
+        // required: true,
         trim: true,
     },
     email: {
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true,
+        // required: true,
         unique: true,
         trim: true,
         minlength: 10,
@@ -52,6 +52,14 @@ const userSchema = new mongoose.Schema({
         enum: ["Manager", "Volunteer", "Coordinator", "Other"],
         default: "Other",
     },  
+    otp: {
+        type: String,
+        trim: true,
+    },
+    otpExpiry:{
+        type: Date,
+        default: Date.now,
+    }
 
 },{timestamps: true});
 
