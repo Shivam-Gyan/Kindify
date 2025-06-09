@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import userService from '../services/user.svc.js';
+import userServices from '../services/user.svc.js';
 
 const EmailUtlis = {
 
@@ -15,7 +15,7 @@ const EmailUtlis = {
     optVerify: async (req, res) => {
 
         const { otp, email } = req.body;
-        const user = await userService.getByEmail(email);
+        const user = await userServices.getByEmail(email);
         if (!user) {
             return res.status(404).json({
                 error: "Not Found",
@@ -53,7 +53,7 @@ const EmailUtlis = {
     resendOtp: async (req, res) => {
 
         const { email } = req.body;
-        const user = await userService.getByEmail(email);
+        const user = await userServices.getByEmail(email);
 
         if (!user) {
             return res.status(404).json({

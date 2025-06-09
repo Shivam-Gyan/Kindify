@@ -2,6 +2,7 @@ import userServices from "../services/user.svc.js";
 import Validation from "../utils/validation.utlis.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import EmailUtlis from "../utils/email.utils.js";
 
 const userController = {
 
@@ -23,7 +24,7 @@ const userController = {
 
             // if user with email already exists, then return error
             if (checkUserExistsWithEmail) {
-                throw new Error("User with this email already exists");
+                throw new Error(`${role.charAt(0).toUpperCase() + role.slice(1)} with this email already exists`);
             }
 
             // validate the password using the passwordValidation function from validation utils
@@ -34,16 +35,19 @@ const userController = {
                 throw new Error(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
             }
 
-            password = await bcrypt.genSalt(10).then(salt => {
-                return bcrypt.hash(password, salt);
-            });
+            password = await bcrypt.genSalt(10)
+                .then(salt => {
+                    return bcrypt.hash(password, salt);
+                }).catch(error => {
+                    throw new Error("Error hashing password: " + error.message);
+                });
 
             // declaring the donor variable here to use it globally in try block
             let donor = null;
 
             // if role is donor, then call the loginDonor service
             if (role === 'donor') {
-                donor = await userServices.registerDonor({name, email, password });
+                donor = await userServices.registerDonor({ name, email, password });
                 if (!donor) {
                     throw new Error("Invalid email or password");
                 }
@@ -59,9 +63,56 @@ const userController = {
                 return res.status(200).json({ message: "NGO registered successfully" });
             }
 
+            // <----------------------------------- integrate the flow of email --------------------------------------------------------->
+
+
+            // Continue with email verification logic as before
+            // if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
+
+            //     const otpObject = Validation.generateOtp();
+            //     newUser.otp = otpObject.otp;
+            //     newUser.otpExpiry = otpObject.otpExpiry;
+            //     await newUser.save(); // Outside the transaction
+
+            //     // Send email with OTP
+            //     const emailResponse = await mailerCtrl.otpMailForUser({
+            //         body: {
+            //             receiverEmail: email,
+            //             subject: 'Email Verification',
+            //             name: name,
+            //             otpType: 'new',
+            //             otp: otpObject.otp
+            //         }
+            //     }, res);
+
+            //     if (emailResponse && emailResponse.status !== 'success') {
+            //         throw new Error('Failed to send email.');
+            //     }
+            // }
+
+            // it is commented out because we already send the welcome mail in login function
+
+            // If email sending is disabled, skip sending welcome email
+            // if (process.env.SMTP_LOCK==='false') {
+            //     const welcomeEmailResponse = await mailerCtrl.welcomeMailForUser({
+            //         body: {
+            //             receiverEmail: email,
+            //             subject: 'Welcome to Career Crush',
+            //             userName: `${firstName} ${lastName}`,
+            //             link: 'https://surendra.codes/'
+            //         }
+            //     }, res);
+
+            //     if (welcomeEmailResponse && welcomeEmailResponse.status !== 'success') {
+            //         throw new Error('Failed to send welcome email.');
+            //     }
+            // }
+
+            // <-------------------------------------------------------------------------------------------->
+
             const token = jwt.sign(
                 {
-                    email:email,
+                    email: email,
                     role: role
                 },
                 process.env.JWT_SECRET,
