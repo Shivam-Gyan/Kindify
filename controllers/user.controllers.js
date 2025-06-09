@@ -34,11 +34,8 @@ const userController = {
                 throw new Error(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
             }
 
-            password = await bcrypt.salt(10,async(error,salt)=>{
-                if (error) {
-                    throw new Error("Error generating salt for password hashing");
-                }
-                return await bcrypt.hash(password, salt);
+            password = await bcrypt.genSalt(10).then(salt => {
+                return bcrypt.hash(password, salt);
             });
 
             // declaring the donor variable here to use it globally in try block
