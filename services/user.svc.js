@@ -1,4 +1,5 @@
 import UserModel from "../models/user.model.js";
+import EmailUtlis from "../utils/email.utils.js";
 
 const userServices={
 
@@ -9,14 +10,25 @@ const userServices={
             if(!name || !email || !password){
                 throw new Error("Email and password are required");
             }
-            
+
 
             const donor= await UserModel.create({
                 name:name,
                 email: email,
                 password: password,
-                role: "donor"
+                role: "donor",
+                
             });
+
+            // // generate OTP object {otp,otpExpiry} for the donor
+            // otpObject= EmailUtlis.generateOtp();
+
+            // // set the otp and otpExpiry in the donor object
+            // donor.otp = otpObject.otp;
+            // donor.otpExpiry =otpObject.otpExpiry;
+
+            // // save the donor object to the database
+            // await donor.save();
 
             return donor;
 
