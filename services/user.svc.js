@@ -5,7 +5,7 @@ const userServices={
 
     registerDonor:async(data)=>{
         try{
-            const {name, email,password}= data;
+            const {name, email, password}= data;
 
             if(!name || !email || !password){
                 throw new Error("Email and password are required");
@@ -33,7 +33,7 @@ const userServices={
             return donor;
 
         }catch(error){
-            throw new Error("Error in loginDonor service: " + error.message);
+            throw new Error("Error in registerDonor service: " + error.message);
         }
     },
 

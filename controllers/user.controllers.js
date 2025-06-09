@@ -35,12 +35,12 @@ const userController = {
                 throw new Error(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
             }
 
-            password = await bcrypt.salt(10, async (error, salt) => {
-                if (error) {
-                    throw new Error("Error generating salt for password hashing");
-                }
-                return await bcrypt.hash(password, salt);
-            });
+            password = await bcrypt.genSalt(10)
+                .then(salt => {
+                    return bcrypt.hash(password, salt);
+                }).catch(error => {
+                    throw new Error("Error hashing password: " + error.message);
+                });
 
             // declaring the donor variable here to use it globally in try block
             let donor = null;
@@ -63,32 +63,32 @@ const userController = {
                 return res.status(200).json({ message: "NGO registered successfully" });
             }
 
-// <----------------------------------- integrate the flow of email --------------------------------------------------------->
+            // <----------------------------------- integrate the flow of email --------------------------------------------------------->
 
 
             // Continue with email verification logic as before
-            if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
+            // if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
 
-                const otpObject = Validation.generateOtp();
-                newUser.otp = otpObject.otp;
-                newUser.otpExpiry = otpObject.otpExpiry;
-                await newUser.save(); // Outside the transaction
+            //     const otpObject = Validation.generateOtp();
+            //     newUser.otp = otpObject.otp;
+            //     newUser.otpExpiry = otpObject.otpExpiry;
+            //     await newUser.save(); // Outside the transaction
 
-                // Send email with OTP
-                const emailResponse = await mailerCtrl.otpMailForUser({
-                    body: {
-                        receiverEmail: email,
-                        subject: 'Email Verification',
-                        name: name,
-                        otpType: 'new',
-                        otp: otpObject.otp
-                    }
-                }, res);
+            //     // Send email with OTP
+            //     const emailResponse = await mailerCtrl.otpMailForUser({
+            //         body: {
+            //             receiverEmail: email,
+            //             subject: 'Email Verification',
+            //             name: name,
+            //             otpType: 'new',
+            //             otp: otpObject.otp
+            //         }
+            //     }, res);
 
-                if (emailResponse && emailResponse.status !== 'success') {
-                    throw new Error('Failed to send email.');
-                }
-            }
+            //     if (emailResponse && emailResponse.status !== 'success') {
+            //         throw new Error('Failed to send email.');
+            //     }
+            // }
 
             // it is commented out because we already send the welcome mail in login function
 
@@ -108,7 +108,7 @@ const userController = {
             //     }
             // }
 
-// <-------------------------------------------------------------------------------------------->
+            // <-------------------------------------------------------------------------------------------->
 
             const token = jwt.sign(
                 {
