@@ -2,8 +2,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
-
 import db from './config/mongoose.database.js'
+import { globalLimiter } from './middlewares/rate.limiter.middleware.js';
+
+// Importing user routes
+import userRouter from './routes/user.route.js';
 
 const app = express();
 
@@ -16,8 +19,12 @@ app.get('/', (req, res) => {
 
 // Middleware to parse JSON bodies
 app.use(express.json());
-// Importing user routes
-import userRouter from './routes/user.route.js';
+
+
+// limiting the number of request globally
+app.use(globalLimiter); 
+
+
 // Using user routes
 app.use('/api/user', userRouter);
 

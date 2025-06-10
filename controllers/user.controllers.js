@@ -13,7 +13,9 @@ const userController = {
         try {
 
             // destructure the email, password and role from the request body
-            let { name, email, password, role } = req.body;
+            let { name, email, password } = req.body;
+
+            const role = req.params.role; // get the role from the request params
 
             // check if email, password and role are provided
             if (!name || !email || !password || !role) {
@@ -51,6 +53,33 @@ const userController = {
                 if (!donor) {
                     throw new Error("Invalid email or password");
                 }
+
+                if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
+
+                    // generate OTP object {otp,otpExpiry} for the donor
+                    const otpObject = EmailUtlis.generateOtp();
+
+                    // set the otp and otpExpiry in the donor object
+                    donor.otp = otpObject.otp;
+                    donor.otpExpiry = otpObject.otpExpiry;
+
+                    // save the donor object to the database
+                    await donor.save();
+
+                    const emailResponse = await EmailUtlis.otpMailForUser({
+                        body: {
+                            receiverEmail: email,
+                            subject: 'Email Verification',
+                            name: `${name}`,
+                            otpType: 'register',
+                            otp: otpObject.otp
+                        }
+                    }, res);
+
+                    if (emailResponse && emailResponse.status !== 'success') {
+                        throw new Error('Failed to send OTP email.');
+                    }
+                }
             }
 
             // declaring the ngo variable here to use it globally in try block
@@ -63,66 +92,12 @@ const userController = {
                 return res.status(200).json({ message: "NGO registered successfully" });
             }
 
-            // <----------------------------------- integrate the flow of email --------------------------------------------------------->
-
-
-            // Continue with email verification logic as before
-            // if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
-
-            //     const otpObject = Validation.generateOtp();
-            //     newUser.otp = otpObject.otp;
-            //     newUser.otpExpiry = otpObject.otpExpiry;
-            //     await newUser.save(); // Outside the transaction
-
-            //     // Send email with OTP
-            //     const emailResponse = await mailerCtrl.otpMailForUser({
-            //         body: {
-            //             receiverEmail: email,
-            //             subject: 'Email Verification',
-            //             name: name,
-            //             otpType: 'new',
-            //             otp: otpObject.otp
-            //         }
-            //     }, res);
-
-            //     if (emailResponse && emailResponse.status !== 'success') {
-            //         throw new Error('Failed to send email.');
-            //     }
-            // }
-
-            // it is commented out because we already send the welcome mail in login function
-
-            // If email sending is disabled, skip sending welcome email
-            // if (process.env.SMTP_LOCK==='false') {
-            //     const welcomeEmailResponse = await mailerCtrl.welcomeMailForUser({
-            //         body: {
-            //             receiverEmail: email,
-            //             subject: 'Welcome to Career Crush',
-            //             userName: `${firstName} ${lastName}`,
-            //             link: 'https://surendra.codes/'
-            //         }
-            //     }, res);
-
-            //     if (welcomeEmailResponse && welcomeEmailResponse.status !== 'success') {
-            //         throw new Error('Failed to send welcome email.');
-            //     }
-            // }
-
-            // <-------------------------------------------------------------------------------------------->
-
-            const token = jwt.sign(
-                {
-                    email: email,
-                    role: role
-                },
-                process.env.JWT_SECRET,
-                { expiresIn: "24h" }
-            );
-
-            return res.status(200).json({ message: "registeration successful", registerData: donor || ngo, token });
 
         } catch (error) {
-            console.error("Error in registerUser controller:", error.message);
+            // if there is an error in registration, then delete the user with the same email
+
+            await userServices.deleteUserByEmail({ email: req.body.email });
+
             return res.status(500).json({ message: error.message });
         }
 
@@ -130,8 +105,74 @@ const userController = {
 
     // function for universal user login irrespective of role
     LoginUser: async (req, res) => {
+        try {
+            const { email, password } = req.body;
+            const role = req.params.role;
 
-    },
+            if (!email || !password) {
+                throw new Error("Email and password are required");
+            }
+
+            if (!['donor', 'ngo'].includes(role)) {
+                throw new Error("Invalid role. Role must be either 'donor' or 'ngo'");
+            }
+
+            // Fetch user based on role
+            const user = await userServices.getUserByEmail(email, role);
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            if (!user.isEmailVerified) {
+                throw new Error("Email is not verified. Please verify your email before logging in.");
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                throw new Error("Invalid email or password");
+            }
+
+            const token = jwt.sign(
+                {
+                    email: user.email,
+                    role: role,
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: "24h" }
+            );
+
+            // Send welcome email if SMTP is not locked
+            if (process.env.SMTP_LOCK === 'false') {
+                await EmailUtlis.welcomeMailForUser({
+                    body: {
+                        receiverEmail: user.email,
+                        subject: 'Welcome to Kindify!',
+                        name: user.name,
+                        link: 'https://kindify.org' // replace with your actual link
+                    }
+                });
+            }
+
+            return res.status(200).json({
+                message: `${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`,
+                token,
+                user: {
+                    name: user.name,
+                    email: user.email,
+                    role,
+                    isEmailVerified: user.isEmailVerified,
+                }
+            });
+
+        } catch (error) {
+            return res.status(500).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+
 
 }
 
