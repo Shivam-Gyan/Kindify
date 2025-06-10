@@ -1,74 +1,86 @@
 import UserModel from "../models/user.model.js";
 import EmailUtlis from "../utils/email.utils.js";
 
-const userServices={
+const userServices = {
 
-    registerDonor:async(data)=>{
-        try{
-            const {name, email, password}= data;
+    registerDonorService: async (data) => {
+        try {
+            const { name, email, password } = data;
 
-            if(!name || !email || !password){
+            if (!name || !email || !password) {
                 throw new Error("Email and password are required");
             }
 
-
-            const donor= await UserModel.create({
-                name:name,
+            const donor = await UserModel.create({
+                name: name,
                 email: email,
                 password: password,
                 role: "donor",
-                
+
             });
-
-            // // generate OTP object {otp,otpExpiry} for the donor
-            // otpObject= EmailUtlis.generateOtp();
-
-            // // set the otp and otpExpiry in the donor object
-            // donor.otp = otpObject.otp;
-            // donor.otpExpiry =otpObject.otpExpiry;
-
-            // // save the donor object to the database
-            // await donor.save();
 
             return donor;
 
-        }catch(error){
+        } catch (error) {
+            // if there is an error in creating the donor, then delete the user with the same email
+            // this is to avoid duplicate email error in the database
+            await UserModel.deleteOne({ email: data.email });
+
             throw new Error("Error in registerDonor service: " + error.message);
         }
     },
 
-    loginDonor:async(data)=>{
-
-    },
-
-    registerNgo:async(data)=>{
-
-    },
-
-    loginNgo:async(data)=>{
+    registerNgo: async (data) => {
 
     },
 
     // this fucntion return the user details by email id irrespective of role
-    checkUserExistsWithEmail:async(email)=>{
-        try{
-            if(!email){
+    checkUserExistsWithEmail: async (email) => {
+        try {
+            if (!email) {
                 throw new Error("oops! Email is required");
             }
 
             const donor = await UserModel.exists({ email: email });
 
             // if donor is not found, return false
-            if(!donor){
+            if (!donor) {
                 return false;
             }
             // if donor is found, return true
             return true;
 
-        }catch(error){
+        } catch (error) {
             throw new Error("Error in getDonorbyEmail service: " + error.message);
         }
+    },
+
+    getUserByEmail: async (email,role) => {
+        try {
+            if (!email) {
+                throw new Error("oops! Email is required");
+            }
+
+            const user = await UserModel.findOne({ email: email ,role: role });
+
+            if (!user) {
+                throw new Error("user not found with this email");
+            }
+            // if user is found, return user
+            return user;
+
+        } catch (error) {
+            throw new Error("Error in getUserByEmail service: " + error.message);
+        }
+    },
+
+    deleteUserByEmail: async ({ email }) => {
+        await UserModel.deleteOne({
+            email: email
+        });
     }
+
+
 }
 
 export default userServices;
