@@ -72,18 +72,19 @@ const donorsSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    donationAmount: {
+    // lifetime donation amount
+    totalDonationAmount: {
         type: Number,
         required: true
     },
-    donationDate: {
+    // total number of donations made by the donor
+    totalDonationsCount: {
+        type: Number,
+        default: 0
+    },
+    followedAt:{
         type: Date,
         default: Date.now
-    },
-    paymentMethod: {
-        type: String,
-        enum: ['credit_card', 'debit_card', 'upi', 'bank_transfer'],
-        default: 'upi'
     }
 });
 
