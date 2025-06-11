@@ -59,7 +59,12 @@ const userSchema = new mongoose.Schema({
     otpExpiry:{
         type: Date,
         default: Date.now,
-    }
+    },
+    followedNgos: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ngo",
+    }],
+    
 
 },{timestamps: true});
 

@@ -47,9 +47,10 @@ const userController = {
             // declaring the donor variable here to use it globally in try block
             let donor = null;
 
+            // <----------------------------------------------------------------->
             // if role is donor, then call the loginDonor service
             if (role === 'donor') {
-                donor = await userServices.registerDonor({ name, email, password });
+                donor = await userServices.registerDonorService({ name, email, password });
                 if (!donor) {
                     throw new Error("Invalid email or password");
                 }
@@ -66,22 +67,28 @@ const userController = {
                     // save the donor object to the database
                     await donor.save();
 
-                    const emailResponse = await EmailUtlis.otpMailForUser({
+                    await EmailUtlis.otpMailForUser({
                         body: {
                             receiverEmail: email,
                             subject: 'Email Verification',
                             name: `${name}`,
-                            otpType: 'register',
+                            otpType: 'registration',
                             otp: otpObject.otp
                         }
                     }, res);
 
-                    if (emailResponse && emailResponse.status !== 'success') {
-                        throw new Error('Failed to send OTP email.');
-                    }
+                    return res.status(200).json({
+                        message: "Donor registered successfully. Please verify your email.",
+                        success: true,
+                        user: {
+                            email: email,
+                            role: role,
+                        }
+                    });
                 }
             }
 
+            //<----------------------------------------------------------------->
             // declaring the ngo variable here to use it globally in try block
             let ngo = null;
 
@@ -91,6 +98,17 @@ const userController = {
                 // for now, just return a success message
                 return res.status(200).json({ message: "NGO registered successfully" });
             }
+
+            return res.status(201).json({
+                message: `${role.charAt(0).toUpperCase() + role.slice(1)} registered successfully`,
+                success: true,
+                user: {
+                    name: donor ? donor.name : ngo.name,
+                    email: email,
+                    role: role,
+                    isEmailVerified: donor ? donor.isEmailVerified : ngo.isEmailVerified,
+                }
+            });
 
 
         } catch (error) {
@@ -170,6 +188,126 @@ const userController = {
                 message: error.message,
                 success: false
             });
+        }
+    },
+
+    forgotPassword: async (req, res) => {
+        try {
+            const { email } = req.body;
+            const role = req.params.role;
+
+            if (!email) {
+                throw new Error("Email is required");
+            }
+
+            // Check if user exists
+            const user = await userServices.getUserByEmail(email,role);
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            // Generate OTP for password reset
+            const otpObject = EmailUtlis.generateOtp();
+            user.otp = otpObject.otp;
+            user.otpExpiry = otpObject.otpExpiry;
+
+            // Save the updated user with OTP
+            await user.save();
+
+            // Send OTP email
+            const emailResponse = await EmailUtlis.otpMailForUser({
+                body: {
+                    receiverEmail: email,
+                    subject: 'Password Reset OTP',
+                    name: user.name,
+                    otpType: 'forgot password',
+                    otp: otpObject.otp
+                }
+            }, res);
+
+            if (emailResponse && emailResponse.status !== 'success') {
+                throw new Error('Failed to send OTP email.');
+            }
+
+            return res.status(200).json({ message: "OTP sent to your email" });
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+
+    },
+
+    resetPasswordUsingOTP:async(req,res)=>{
+        try {
+            const { email, newPassword, otp } = req.body;
+            const role = req.params.role;
+
+            if (!email || !newPassword || !otp) {
+                throw new Error("Email, new password and OTP are required");
+            }
+
+            // Fetch user based on email and role
+            const user = await userServices.getUserByEmail(email, role);
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            // Check if OTP is valid and not expired
+            if (user.otp !== otp || Date.now() > user.otpExpiry) {
+                throw new Error("Invalid or expired OTP");
+            }
+
+            // Hash the new password
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+            user.otp = null; // Clear OTP after successful password change
+            user.otpExpiry = null; // Clear OTP expiry
+
+            // Save the updated user
+            await user.save();
+
+            return res.status(200).json({ message: "Password changed successfully" ,success:true});
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message,success:false });
+        }
+    },
+
+    updatePassword: async (req, res) => {
+        try {
+            const { email, oldPassword, newPassword } = req.body;
+            const role = req.params.role;
+
+            if (!email || !oldPassword || !newPassword) {
+                throw new Error("Email, old password and new password are required");
+            }
+
+            // Fetch user based on email and role
+            const user = await userServices.getUserByEmail(email, role);
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            // Check if old password is correct
+            const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+            if (!isOldPasswordValid) {
+                throw new Error("Old password is incorrect");
+            }
+
+            // Hash the new password
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+
+            // Save the updated user
+            await user.save();
+
+            return res.status(200).json({ message: "Password updated successfully", success: true });
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message, success: false });
         }
     }
 

@@ -154,9 +154,9 @@ const ngoSchema = new mongoose.Schema({
     establishedYear: {
         type: Number
     },
-    // "sectors" represents the areas or fields in which the NGO operates, 
+    // "category" represents the areas or fields in which the NGO operates, 
     // such as "health", "education", "environment", etc.
-    sectors: [{
+    category: [{
         type: String,
         trim: true
     }],
