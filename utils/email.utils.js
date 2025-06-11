@@ -208,7 +208,7 @@ const EmailUtlis = {
       <td class="header">
         <img src="https://i.imgur.com/YYC1Tff.png" alt="Kindify Logo" />
         <h1>Welcome to Kindify!</h1>
-        <p>Your Kindness, Their Smile</p>
+        <p>Share kindness, spread happiness, make a difference.</p>
       </td>
     </tr>
     <tr>
@@ -405,86 +405,86 @@ const EmailUtlis = {
 
     const html = `
         <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Kindify OTP Email</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f6ff;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background: url('https://example.com/your-ngo-image.jpg') center/cover no-repeat;
-      padding: 60px 20px;
-      text-align: center;
-      color: white;
-      background-color: #007bff; /* fallback */
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 30px;
-    }
-    .content {
-      padding: 30px 20px;
-      color: #333;
-    }
-    .otp {
-      font-size: 28px;
-      font-weight: bold;
-      color: #007bff;
-      text-align: center;
-      margin: 20px 0;
-    }
-    .footer {
-      background: #f1f5ff;
-      text-align: center;
-      padding: 20px;
-      font-size: 14px;
-      color: #555;
-    }
-    .button {
-      display: inline-block;
-      background: #007bff;
-      color: white;
-      padding: 12px 24px;
-      text-decoration: none;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Welcome to Kindify</h1>
-      <p>Your Kindness, Their Smile</p>
-    </div>
-    <div class="content">
-      <p>Hi <strong>${name || 'Kind Soul'}</strong>,</p>
-      <p>You're receiving this email for <strong>${otpType}</strong>.</p>
-      <p>Use the following OTP to proceed:</p>
-      <div class="otp">${otp}</div>
-      <p>This OTP will expire in 5 minutes. Please do not share it with anyone.</p>
-      <p>If you didn’t request this, kindly ignore this email.</p>
-    </div>
-    <div class="footer">
-      <p>Kindify | Building Bridges Between Donors and NGOs</p>
-      <p>Follow us on <a href="https://kindify.org" style="color: #007bff;">Kindify.org</a></p>
-    </div>
-  </div>
-</body>
-</html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Kindify OTP Email</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              background: #f2f6ff;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: auto;
+              background: #ffffff;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              background: url('https://example.com/your-ngo-image.jpg') center/cover no-repeat;
+              padding: 60px 20px;
+              text-align: center;
+              color: white;
+              background-color: #007bff; /* fallback */
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 30px;
+            }
+            .content {
+              padding: 30px 20px;
+              color: #333;
+            }
+            .otp {
+              font-size: 28px;
+              font-weight: bold;
+              color: #007bff;
+              text-align: center;
+              margin: 20px 0;
+            }
+            .footer {
+              background: #f1f5ff;
+              text-align: center;
+              padding: 20px;
+              font-size: 14px;
+              color: #555;
+            }
+            .button {
+              display: inline-block;
+              background: #007bff;
+              color: white;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Welcome to Kindify</h1>
+              <p>Share kindness, spread happiness, make a difference.</p>
+            </div>
+            <div class="content">
+              <p>Hi <strong>${name || 'Kind Soul'}</strong>,</p>
+              <p>You're receiving this email for <strong>${otpType}</strong>.</p>
+              <p>Use the following OTP to proceed:</p>
+              <div class="otp">${otp}</div>
+              <p>This OTP will expire in 5 minutes. Please do not share it with anyone.</p>
+              <p>If you didn’t request this, kindly ignore this email.</p>
+            </div>
+            <div class="footer">
+              <p>Kindify | Building Bridges Between Donors and NGOs</p>
+              <p>Follow us on <a href="https://kindify.org" style="color: #007bff;">Kindify.org</a></p>
+            </div>
+          </div>
+        </body>
+        </html>
 
 `
 
