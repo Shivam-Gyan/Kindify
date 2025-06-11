@@ -16,8 +16,11 @@ const EmailUtlis = {
 
     // here "type" indicate the type of otp verification, whether it is for registration ,forgot password, resend otp verification or email verification
     const { otp, email, type } = req.body;
+
+    const role = req.params.role;
+
     // Check if OTP and email are provided
-    const user = await userServices.getUserByEmail(email);
+    const user = await userServices.getUserByEmail(email, role);
     // Check if user exists
     if (!user) {
       return res.status(404).json({
@@ -61,7 +64,8 @@ const EmailUtlis = {
   resendOtp: async (req, res) => {
 
     const { email } = req.body;
-    const user = await userServices.getByEmail(email);
+    const role = req.params.role;
+    const user = await userServices.getUserByEmail(email,role);
 
     if (!user) {
       return res.status(404).json({
@@ -71,37 +75,25 @@ const EmailUtlis = {
       });
     }
 
-    if (user.isEmailVerified) {
-      return res.status(400).json({
-        success: false,
-        error: "Already Verified",
-        message: "The email address is already verified."
-      });
-    }
-
     // Generate a new OTP
     const otpObject = EmailUtlis.generateOtp();
 
     // Update the user
     user.otp = otpObject.otp;
-    user.otpExpires = otpObject.otpExpires;
+    user.otpExpiry= otpObject.otpExpiry;
 
     // Save the user
     await user.save();
 
-    const emailResponse = await mailerUtils.otpMailForUser({
+    await EmailUtlis.otpMailForUser({
       body: {
         receiverEmail: email,
-        subject: 'Email Verification',
-        userName: `${user.firstName} ${user.lastName}`,
+        subject: 'Resnd OTP ',
+        name: user.name,
         otpType: 'resend',
         otp: otpObject.otp
       }
     }, res);
-
-    if (emailResponse && emailResponse.status !== 'success') {
-      return res.status(500).json({ error: 'Failed to send email.' });
-    }
 
     res.status(200).json({
       message: "OTP sent.Please check your email.",
@@ -125,126 +117,141 @@ const EmailUtlis = {
     // HTML template with dynamic values for employee onboarding
     const html = `
             <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-              <title>Welcome to Kindify!</title>
-              <style>
-                body {
-                  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                  margin: 0;
-                  padding: 0;
-                  background: url('https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1050&q=80') no-repeat center center;
-                  background-size: cover;
-                  background-color: #e6f0fa;
-                }
-                table {
-                  width: 100%;
-                  max-width: 600px;
-                  margin: 50px auto;
-                  background-color: rgba(255, 255, 255, 0.96);
-                  border-radius: 8px;
-                  overflow: hidden;
-                  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-                }
-                .header {
-                  background-color: #0066cc;
-                  color: #ffffff;
-                  padding: 30px 20px;
-                  text-align: center;
-                }
-                .header img {
-                  width: 60px;
-                  margin-bottom: 10px;
-                }
-                .header h1 {
-                  margin: 0;
-                  font-size: 28px;
-                }
-                .content {
-                  padding: 25px 30px;
-                  color: #333333;
-                }
-                .content h2 {
-                  color: #0066cc;
-                  font-size: 22px;
-                  margin-top: 0;
-                }
-                .content p {
-                  font-size: 16px;
-                  line-height: 1.6;
-                }
-                .button {
-                  display: inline-block;
-                  background-color: #0066cc;
-                  color: #ffffff;
-                  padding: 12px 24px;
-                  text-decoration: none;
-                  border-radius: 6px;
-                  margin: 20px 0;
-                }
-                .button:hover {
-                  background-color: #004c99;
-                }
-                .footer {
-                  background-color: #f1f1f1;
-                  text-align: center;
-                  padding: 20px;
-                  color: #555555;
-                  font-size: 13px;
-                }
-                .footer a {
-                  color: #0066cc;
-                  text-decoration: none;
-                }
-              </style>
-            </head>
-            <body>
-              <table>
-                <tr>
-                  <td class="header">
-                    <img src="https://i.imgur.com/YYC1Tff.png" alt="Kindify Logo" />
-                    <h1>Welcome to Kindify!</h1>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="content">
-                    <h2>Hi ${name || 'there'},</h2>
-                    <p>
-                      We're excited to welcome you to <strong>Kindify</strong> — a platform built to connect <strong>compassionate donors</strong> and <strong>dedicated NGOs</strong> in a secure and impactful environment.
-                    </p>
-                    <p>
-                      Whether you're here to <strong>support causes that matter</strong> or to <strong>create positive change in your community</strong>, Kindify is here to empower your journey.
-                    </p>
-                    <p>
-                      From now on, you'll be able to stay updated on events, initiatives, donations, and inspiring stories — all in one trusted place.
-                    </p>
-                    <p style="text-align: center;">
-                      <a href="${link || '#'}" class="button">Go to Your Kindify Dashboard</a>
-                    </p>
-                    <p>
-                      If you need any help or have questions, our team is always ready to support you.
-                    </p>
-                    <p>Warm regards,<br><strong>The Kindify Team</strong></p>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="footer">
-                    <p>&copy; ${new Date().getFullYear()} Kindify. All rights reserved.</p>
-                    <p><a href="https://kindify.org">www.kindify.org</a> | <a href="mailto:support@kindify.org">support@kindify.org</a></p>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome to Kindify!</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f6ff;
+    }
+    table {
+      width: 100%;
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .header {
+      background: linear-gradient(135deg, #007bff, #00c3ff);
+      color: #ffffff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header img {
+      width: 64px;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 32px 30px;
+      color: #333333;
+    }
+    .content h2 {
+      color: #007bff;
+      font-size: 22px;
+      margin-top: 0;
+    }
+    .content p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .button {
+      display: inline-block;
+      background-color: #007bff;
+      color: #ffffff;
+      padding: 14px 28px;
+      text-decoration: none;
+      border-radius: 10px;
+      margin: 24px auto;
+      font-weight: 500;
+      transition: background 0.3s ease;
+    }
+    .button:hover {
+      background-color: #005fcc;
+    }
+    .footer {
+      background-color: #f8fbff;
+      text-align: center;
+      padding: 20px;
+      color: #666666;
+      font-size: 13px;
+    }
+    .footer a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    @media (max-width: 600px) {
+      .content, .header, .footer {
+        padding: 20px;
+      }
+      .button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  </style>
+</head>
+<body style="background: #f2f6ff url('https://yourimageurl.com/bg.jpg') no-repeat center center; background-size: cover;">
+  <table>
+    <tr>
+      <td class="header">
+        <img src="https://i.imgur.com/YYC1Tff.png" alt="Kindify Logo" />
+        <h1>Welcome to Kindify!</h1>
+        <p>Your Kindness, Their Smile</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="content">
+        <h2>Hi ${name || 'there'},</h2>
+        <p>
+          We're thrilled to have you on <strong>Kindify</strong> — a platform built to connect <strong>compassionate donors</strong> and <strong>dedicated NGOs</strong> in a secure and impactful environment.
+        </p>
+        <p>
+          Whether you're here to <strong>support life-changing causes</strong> or to <strong>drive meaningful impact</strong>, Kindify is your partner in purpose.
+        </p>
+        <p>
+          From now on, you’ll be able to stay updated on verified initiatives, contribute to trusted NGOs, and experience the power of kindness in action.
+        </p>
+        <p style="text-align: center;">
+          <a href="${link || '#'}" class="button">Go to Your Kindify Dashboard</a>
+        </p>
+        <p>
+          If you need help or have questions, we’re always here for you.
+        </p>
+        <p>Warm regards,<br><strong>The Kindify Team</strong></p>
+      </td>
+    </tr>
+    <tr>
+      <td class="footer">
+        <p>&copy; ${new Date().getFullYear()} Kindify. All rights reserved.</p>
+        <p>
+          <a href="https://kindify.org">www.kindify.org</a> | 
+          <a href="mailto:support@kindify.org">support@kindify.org</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
 
 
         `;
 
     // Define the email options
     const mailOptions = {
-      from: `"Kindify" <${process.env.DISPLAY_EMAIL}>`, // sender address
+      from: `"from Kindify Organization" <${process.env.DISPLAY_EMAIL}>`, // sender address
       to: receiverEmail, // list of receivers
       subject: subject, // Subject line
       html: html // HTML body
@@ -385,243 +392,6 @@ const EmailUtlis = {
     });
   },
 
-  forgetPasswordMailForUser: async (req, res) => {
-    const transporter = nodemailer.createTransport({
-      service: process.env.SERVICE,
-      auth: {
-        user: process.env.MAIL_ID, // your Gmail address
-        pass: process.env.MAIL_PASSWORD, // your Gmail password or app-specific password
-      },
-    });
-
-    const { receiverEmail, subject, userName, otp } = req.body;
-
-    // HTML template with dynamic values for password reset email
-    const html = `<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your OTP Code</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
-        }
-        table {
-          width: 100%;
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-collapse: collapse;
-        }
-        .header {
-          background-color: #007BFF;
-          padding: 20px;
-          text-align: center;
-          color: #ffffff;
-        }
-        .header h1 {
-          margin: 0;
-        }
-        .content {
-          padding: 20px;
-          color: #333333;
-        }
-        .content p {
-          font-size: 16px;
-          line-height: 1.5;
-        }
-        .otp-code {
-          font-size: 24px;
-          font-weight: bold;
-          text-align: center;
-          margin: 20px 0;
-          padding: 10px;
-          background-color: #f4f4f4;
-          border: 1px dashed #007BFF;
-          color: #007BFF;
-        }
-        .footer {
-          padding: 20px;
-          text-align: center;
-          background-color: #eeeeee;
-          color: #777777;
-          font-size: 12px;
-        }
-      </style>
-    </head>
-    <body>
-      <table>
-        <tr>
-          <td class="header">
-            <h1>Your OTP Code</h1>
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear ${userName},</p>
-            <p>To reset your password, please use the following One-Time Password (OTP). This code is valid for the next 10 minutes:</p>
-            <div class="otp-code">
-              ${otp}
-            </div>
-            <p>If you did not request this, please ignore this email or contact support immediately.</p>
-            <p>Best regards,<br>The Lawzz Advocate Services Team</p>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            <p>&copy; 2024 Lawzz Advocate Services. All rights reserved.</p>
-            <p>1234 Advocate Street, Legal City | (123) 456-7890 | support@lawzz.com</p>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>`;
-
-    // Define the email options
-    const mailOptions = {
-      from: `"Lawzz Advocate Services" <${process.env.DISPLAY_EMAIL}>`, // sender address
-      to: receiverEmail, // recipient address
-      subject: subject, // email subject
-      html: html, // email body with the HTML template
-    };
-
-    // Send mail
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        return res.status(500).json({ message: 'Error sending email', error });
-      }
-      console.log('Message sent: %s', info.messageId);
-
-      res.status(200).json({
-        message: 'Email sent successfully',
-      });
-    });
-  },
-
-  forgetPasswordMailForUserWithSMTP: async (req, res) => {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST, // Your SMTP server address
-      port: process.env.SMTP_PORT || 587, // SMTP port (587 for TLS or 465 for SSL)
-      secure: process.env.SMTP_SECURE === 'true', // Use TLS (false) or SSL (true)
-      auth: {
-        user: process.env.SMTP_USER, // Your SMTP username (e.g., email address)
-        pass: process.env.SMTP_PASSWORD, // Your SMTP password
-      }
-    });
-
-    const { receiverEmail, subject, userName, otp } = req.body;
-
-    // HTML template with dynamic values for password reset email
-    const html = `<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your OTP Code</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
-        }
-        table {
-          width: 100%;
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-collapse: collapse;
-        }
-        .header {
-          background-color: #007BFF;
-          padding: 20px;
-          text-align: center;
-          color: #ffffff;
-        }
-        .header h1 {
-          margin: 0;
-        }
-        .content {
-          padding: 20px;
-          color: #333333;
-        }
-        .content p {
-          font-size: 16px;
-          line-height: 1.5;
-        }
-        .otp-code {
-          font-size: 24px;
-          font-weight: bold;
-          text-align: center;
-          margin: 20px 0;
-          padding: 10px;
-          background-color: #f4f4f4;
-          border: 1px dashed #007BFF;
-          color: #007BFF;
-        }
-        .footer {
-          padding: 20px;
-          text-align: center;
-          background-color: #eeeeee;
-          color: #777777;
-          font-size: 12px;
-        }
-      </style>
-    </head>
-    <body>
-      <table>
-        <tr>
-          <td class="header">
-            <h1>Your OTP Code</h1>
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear ${userName},</p>
-            <p>To reset your password, please use the following One-Time Password (OTP). This code is valid for the next 10 minutes:</p>
-            <div class="otp-code">
-              ${otp}
-            </div>
-            <p>If you did not request this, please ignore this email or contact support immediately.</p>
-            <p>Best regards,<br>The Lawzz Advocate Services Team</p>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            <p>&copy; 2024 Lawzz Advocate Services. All rights reserved.</p>
-            <p>1234 Advocate Street, Legal City | (123) 456-7890 | support@lawzz.com</p>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>`;
-
-    // Define the email options
-    const mailOptions = {
-      from: `"Lawzz Advocate Services" <${process.env.DISPLAY_EMAIL}>`, // sender address
-      to: receiverEmail, // recipient address
-      subject: subject, // email subject
-      html: html, // email body with the HTML template
-    };
-
-    // Send mail
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        return res.status(500).json({ message: 'Error sending email', error });
-      }
-      console.log('Message sent: %s', info.messageId);
-
-      res.status(200).json({
-        message: 'Email sent successfully',
-      });
-    });
-  },
 
   otpMailForUser: async (req, res) => {
     const transporter = nodemailer.createTransport({
@@ -631,26 +401,108 @@ const EmailUtlis = {
         pass: process.env.MAIL_PASSWORD, // your Gmail password or app-specific password
       },
     });
-
     const { receiverEmail, subject, otp, name, otpType } = req.body;
+
+    const html = `
+        <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Kindify OTP Email</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f6ff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: url('https://example.com/your-ngo-image.jpg') center/cover no-repeat;
+      padding: 60px 20px;
+      text-align: center;
+      color: white;
+      background-color: #007bff; /* fallback */
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+    .content {
+      padding: 30px 20px;
+      color: #333;
+    }
+    .otp {
+      font-size: 28px;
+      font-weight: bold;
+      color: #007bff;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #f1f5ff;
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+    .button {
+      display: inline-block;
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Kindify</h1>
+      <p>Your Kindness, Their Smile</p>
+    </div>
+    <div class="content">
+      <p>Hi <strong>${name || 'Kind Soul'}</strong>,</p>
+      <p>You're receiving this email for <strong>${otpType}</strong>.</p>
+      <p>Use the following OTP to proceed:</p>
+      <div class="otp">${otp}</div>
+      <p>This OTP will expire in 5 minutes. Please do not share it with anyone.</p>
+      <p>If you didn’t request this, kindly ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>Kindify | Building Bridges Between Donors and NGOs</p>
+      <p>Follow us on <a href="https://kindify.org" style="color: #007bff;">Kindify.org</a></p>
+    </div>
+  </div>
+</body>
+</html>
+
+`
 
     const mailOptions = {
       from: `"From Kindify Organization" <${process.env.DISPLAY_EMAIL}>`, // sender address
       to: receiverEmail, // recipient address
       subject: subject, // email subject
-      text: `Hi ${name ? name : "there, "}\nYour ${otpType} OTP is : ${otp} \nThis OTP is valid for 5 minutes\nplease keep the otp confidential and not share with others.`
+      html: html, // email body with the HTML template
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error('Error sending email:', error);
+
         return res.status(500).json({ message: 'Error sending email', error });
       }
-      console.log('Message sent: %s', info.messageId);
 
-      res.status(200).json({
-        message: 'OTP sent successfully',
-      });
+      // return {success:true};
     })
 
   },
@@ -667,229 +519,95 @@ const EmailUtlis = {
       }
     });
 
-    const { receiverEmail, subject, otp, userName, otpType } = req.body;
+    const { receiverEmail, subject, otp, name, otpType } = req.body;
 
     const html = `
-      <!DOCTYPE html>
-  <html lang="en">
-    <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Static Template</title>
-
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    </head>
-    <body
-    style="
+        <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Kindify OTP Email</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f6ff;
       margin: 0;
-      font-family: 'Poppins', sans-serif;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
       background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: url('https://example.com/your-ngo-image.jpg') center/cover no-repeat;
+      padding: 60px 20px;
+      text-align: center;
+      color: white;
+      background-color: #007bff; /* fallback */
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+    .content {
+      padding: 30px 20px;
+      color: #333;
+    }
+    .otp {
+      font-size: 28px;
+      font-weight: bold;
+      color: #007bff;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #f1f5ff;
+      text-align: center;
+      padding: 20px;
       font-size: 14px;
-    "
-    >
-    <div
-      style="
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 45px 30px 60px;
-      background: #f4f7ff;
-      background-image: url(https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661497957196_595865/email-template-background-banner);
-      background-repeat: no-repeat;
-      background-size: 800px 452px;
-      background-position: top center;
-      font-size: 14px;
-      color: #434343;
-      "
-    >
-      <header>
-      <table style="width: 100%;">
-        <tbody>
-        <tr style="height: 0;">
-          <td>
-          <img
-            alt=""
-            src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1663574980688_114990/archisketch-logo"
-            height="30px"
-          />
-          </td>
-          <td style="text-align: right;">
-          <span
-            style="font-size: 16px; line-height: 30px; color: #ffffff;"
-            >${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span
-          >
-          </td>
-        </tr>
-        </tbody>
-      </table>
-      </header>
-
-      <main>
-      <div
-        style="
-        margin: 0;
-        margin-top: 70px;
-        padding: 92px 30px 115px;
-        background: #ffffff;
-        border-radius: 30px;
-        text-align: center;
-        "
-      >
-        <div style="width: 100%; max-width: 489px; margin: 0 auto;">
-        <h1
-          style="
-          margin: 0;
-          font-size: 24px;
-          font-weight: 500;
-          color: #1f1f1f;
-          "
-        >
-          Your OTP
-        </h1>
-        <p
-          style="
-          margin: 0;
-          margin-top: 17px;
-          font-size: 16px;
-          font-weight: 500;
-          "
-        >
-          Hey ${userName},
-        </p>
-        <p
-          style="
-          margin: 0;
-          margin-top: 17px;
-          font-weight: 500;
-          letter-spacing: 0.56px;
-          "
-        >
-          Thank you for choosing Career Crush. Use the following OTP
-          to complete the procedure to verify your email address. OTP is
-          valid for
-          <span style="font-weight: 600; color: #1f1f1f;">5 minutes</span>.
-          Do not share this code with others, including Career Crush.
-        </p>
-        <p
-          style="
-          margin: 0;
-          margin-top: 60px;
-          font-size: 40px;
-          font-weight: 600;
-          letter-spacing: 25px;
-          color: #ba3d4f;
-          "
-        >
-          ${otp}
-        </p>
-        </div>
-      </div>
-
-      <p
-        style="
-        max-width: 400px;
-        margin: 0 auto;
-        margin-top: 90px;
-        text-align: center;
-        font-weight: 500;
-        color: #8c8c8c;
-        "
-      >
-        Need help? Ask at
-        <a
-        href="mailto:archisketch@gmail.com"
-        style="color: #499fb6; text-decoration: none;"
-        >Careercrush.helpdesk@support.com</a
-        >
-        or visit our
-        <a
-        href=""
-        target="_blank"
-        style="color: #499fb6; text-decoration: none;"
-        >Help Center</a
-        >
-      </p>
-      </main>
-
-      <footer
-      style="
-        width: 100%;
-        max-width: 490px;
-        margin: 20px auto 0;
-        text-align: center;
-        border-top: 1px solid #e6ebf1;
-      "
-      >
-      <p
-        style="
-        margin: 0;
-        margin-top: 40px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #434343;
-        "
-      >
-        Career Crush Foundation
-      </p>
-      <p style="margin: 0; margin-top: 8px; color: #434343;">
-        Address 540, City, State.
-      </p>
-      <div style="margin: 0; margin-top: 16px;">
-        <a href="" target="_blank" style="display: inline-block;">
-        <img
-          width="36px"
-          alt="Facebook"
-          src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661502815169_682499/email-template-icon-facebook"
-        />
-        </a>
-        <a
-        href=""
-        target="_blank"
-        style="display: inline-block; margin-left: 8px;"
-        >
-        <img
-          width="36px"
-          alt="Instagram"
-          src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661504218208_684135/email-template-icon-instagram"
-        /></a>
-        <a
-        href=""
-        target="_blank"
-        style="display: inline-block; margin-left: 8px;"
-        >
-        <img
-          width="36px"
-          alt="Twitter"
-          src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661503043040_372004/email-template-icon-twitter"
-        />
-        </a>
-        <a
-        href=""
-        target="_blank"
-        style="display: inline-block; margin-left: 8px;"
-        >
-        <img
-          width="36px"
-          alt="Youtube"
-          src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661503195931_210869/email-template-icon-youtube"
-        /></a>
-      </div>
-      <p style="margin: 0; margin-top: 16px; color: #434343;">
-        Copyright © 2022 Career Crush Foundation. All rights reserved.
-      </p>
-      </footer>
+      color: #555;
+    }
+    .button {
+      display: inline-block;
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Kindify</h1>
+      <p>Your Kindness, Their Smile</p>
     </div>
-    </body>
-  </html>
+    <div class="content">
+      <p>Hi <strong>${name || 'Kind Soul'}</strong>,</p>
+      <p>You're receiving this email for <strong>${otpType}</strong>.</p>
+      <p>Use the following OTP to proceed:</p>
+      <div class="otp">${otp}</div>
+      <p>This OTP will expire in 5 minutes. Please do not share it with anyone.</p>
+      <p>If you didn’t request this, kindly ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>Kindify | Building Bridges Between Donors and NGOs</p>
+      <p>Follow us on <a href="https://kindify.org" style="color: #007bff;">Kindify.org</a></p>
+    </div>
+  </div>
+</body>
+</html>
 
-    
-    `
+`
 
     const mailOptions = {
-      from: `"Lawzz Advocate Services" <${process.env.DISPLAY_EMAIL}>`, // sender address
+      from: `"From Kindify Organization" <${process.env.DISPLAY_EMAIL}>`, // sender address
       to: receiverEmail, // recipient address
       subject: subject, // email subject
       html: html, // email body with the HTML template

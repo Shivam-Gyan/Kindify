@@ -30,7 +30,7 @@ const userServices = {
         }
     },
 
-    registerNgo: async (data) => {
+    registerNgoService: async (data) => {
 
     },
 
