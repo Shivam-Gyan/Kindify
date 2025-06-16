@@ -9,9 +9,7 @@ const userController = {
 
     // function for usniversal user registration irrespective of role
     registerUser: async (req, res) => {
-
         try {
-
             // destructure the email, password and role from the request body
             let { name, email, password } = req.body;
 
@@ -46,6 +44,7 @@ const userController = {
 
             // declaring the donor variable here to use it globally in try block
             let donor = null;
+            let ngo = null;
 
             // <----------------------------------------------------------------->
             // if role is donor, then call the loginDonor service
@@ -55,48 +54,80 @@ const userController = {
                     throw new Error("Invalid email or password");
                 }
 
-                if (!donor.isEmailVerified && process.env.SMTP_LOCK === 'false') {
-
-                    // generate OTP object {otp,otpExpiry} for the donor
+                // Generate OTP for email verification
                     const otpObject = EmailUtlis.generateOtp();
-
-                    // set the otp and otpExpiry in the donor object
                     donor.otp = otpObject.otp;
                     donor.otpExpiry = otpObject.otpExpiry;
-
-                    // save the donor object to the database
                     await donor.save();
 
+                // Send OTP email
+                try {
                     await EmailUtlis.otpMailForUser({
                         body: {
                             receiverEmail: email,
                             subject: 'Email Verification',
-                            name: `${name}`,
+                            name: name,
                             otpType: 'registration',
                             otp: otpObject.otp
                         }
                     }, res);
+                } catch (emailError) {
+                    console.error('Error sending OTP email:', emailError);
+                    // Don't throw error, just log it
+                }
 
                     return res.status(200).json({
                         message: "Donor registered successfully. Please verify your email.",
                         success: true,
                         user: {
+                        name: donor.name,
                             email: email,
                             role: role,
+                        isEmailVerified: false
                         }
                     });
-                }
             }
 
             //<----------------------------------------------------------------->
-            // declaring the ngo variable here to use it globally in try block
-            let ngo = null;
-
             // if role is ngo, then handle NGO registration logic
             if (role === 'ngo') {
-                // handle NGO registration logic here
-                // for now, just return a success message
-                return res.status(200).json({ message: "NGO registered successfully" });
+                ngo = await userServices.registerNgoService({ name, email, password });
+                if (!ngo) {
+                    throw new Error("Invalid email or password");
+                }
+
+                // Generate OTP for email verification
+                const otpObject = EmailUtlis.generateOtp();
+                ngo.otp = otpObject.otp;
+                ngo.otpExpiry = otpObject.otpExpiry;
+                await ngo.save();
+
+                // Send OTP email
+                try {
+                    await EmailUtlis.otpMailForUser({
+                        body: {
+                            receiverEmail: email,
+                            subject: 'Email Verification',
+                            name: name,
+                            otpType: 'registration',
+                            otp: otpObject.otp
+                        }
+                    }, res);
+                } catch (emailError) {
+                    console.error('Error sending OTP email:', emailError);
+                    // Don't throw error, just log it
+                }
+
+                return res.status(200).json({
+                    message: "NGO registered successfully. Please verify your email.",
+                    success: true,
+                    user: {
+                        name: ngo.name,
+                        email: email,
+                        role: role,
+                        isEmailVerified: false
+                    }
+                });
             }
 
             return res.status(201).json({
@@ -106,19 +137,15 @@ const userController = {
                     name: donor ? donor.name : ngo.name,
                     email: email,
                     role: role,
-                    isEmailVerified: donor ? donor.isEmailVerified : ngo.isEmailVerified,
+                    isEmailVerified: false
                 }
             });
 
-
         } catch (error) {
             // if there is an error in registration, then delete the user with the same email
-
             await userServices.deleteUserByEmail({ email: req.body.email });
-
             return res.status(500).json({ message: error.message });
         }
-
     },
 
     // function for universal user login irrespective of role

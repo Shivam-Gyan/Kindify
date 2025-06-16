@@ -16,7 +16,6 @@ const userServices = {
                 email: email,
                 password: password,
                 role: "donor",
-
             });
 
             return donor;
@@ -31,7 +30,28 @@ const userServices = {
     },
 
     registerNgoService: async (data) => {
+        try {
+            const { name, email, password } = data;
 
+            if (!name || !email || !password) {
+                throw new Error("Email and password are required");
+            }
+
+            const ngo = await UserModel.create({
+                name: name,
+                email: email,
+                password: password,
+                role: "ngo",
+            });
+
+            return ngo;
+
+        } catch (error) {
+            // if there is an error in creating the NGO, then delete the user with the same email
+            await UserModel.deleteOne({ email: data.email });
+
+            throw new Error("Error in registerNgo service: " + error.message);
+        }
     },
 
     // this fucntion return the user details by email id irrespective of role
@@ -79,8 +99,6 @@ const userServices = {
             email: email
         });
     }
-
-
 }
 
 export default userServices;
