@@ -5,9 +5,12 @@ import express from 'express';
 import cors from 'cors';
 import db from './config/mongoose.database.js'
 import { globalLimiter } from './middlewares/rate.limiter.middleware.js';
+import cors from 'cors'
+import fileUpload from 'express-fileupload'
 
 // Importing user routes
 import userRouter from './routes/user.route.js';
+import DonorRouter from './routes/donor.route.js';
 
 const app = express();
 
@@ -15,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow both localhost and IP
+    origin: [process.env.FRONTEND_URI], // Allow both localhost and IP
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -25,8 +28,16 @@ app.get('/', (req, res) => {
     res.send('Hello, world!');
 });
 
+
+app.use(fileUpload({
+    useTempFiles:true,
+}))
+
 // Middleware to parse JSON bodies
 app.use(express.json());
+// Middleware to parse URL-encoded bodies
+app.use(express.urlencoded({ extended: true }));
+
 
 // limiting the number of request globally
 app.use(globalLimiter); 
@@ -38,6 +49,7 @@ app.get('/health', (req, res) => {
 
 // Using user routes
 app.use('/api/user', userRouter);
+app.use('/api/donor', DonorRouter); 
 
 // Error handling middleware
 app.use((err, req, res, next) => {

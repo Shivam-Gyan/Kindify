@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import userServices from '../services/user.svc.js';
+import userServices from '../services/user.svc.js'; 
 
 const EmailUtlis = {
 
@@ -202,11 +202,11 @@ const EmailUtlis = {
     }
   </style>
 </head>
-<body style="background: #f2f6ff url('https://yourimageurl.com/bg.jpg') no-repeat center center; background-size: cover;">
+<body style="background: #f2f6ff url('https://res.cloudinary.com/dglwzejwk/image/upload/v1750158710/20250617_1635_Helping_Children_Together_simple_compose_01jxyrz1xcfjn9k6da7r0zb8cp_a6n9g1.png') no-repeat center center; background-size: cover;">
   <table>
     <tr>
       <td class="header">
-        <img src="https://i.imgur.com/YYC1Tff.png" alt="Kindify Logo" />
+        <img src="https://res.cloudinary.com/dglwzejwk/image/upload/v1750157677/logoblack_ly0mlm.png" alt="Kindify Logo" />
         <h1>Welcome to Kindify!</h1>
         <p>Share kindness, spread happiness, make a difference.</p>
       </td>
@@ -265,9 +265,9 @@ const EmailUtlis = {
       console.log('Message sent: %s', info.messageId);
     });
   },
-
+  
   welcomeMailForUserWithSMTP: async (req, res) => {
-
+    
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST, // Your SMTP server address
       port: process.env.SMTP_PORT || 587, // SMTP port (587 for TLS or 465 for SSL)
@@ -392,7 +392,144 @@ const EmailUtlis = {
     });
   },
 
+  sendAccountDeletionEmail: async (emailReq) => {
+    const transporter = nodemailer.createTransport({
+      service: process.env.SERVICE,
+      auth: {
+        user: process.env.MAIL_ID, // your Gmail address
+        pass: process.env.MAIL_PASSWORD, // your Gmail password or app-specific password
+      }
+    });
 
+    const {receiverEmail, name, subject } = emailReq;
+
+    // HTML template with dynamic values for employee onboarding
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Goodbye from Kindify</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f6ff;
+    }
+    table {
+      width: 100%;
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .header {
+      background: linear-gradient(135deg, #ff6b6b, #f06595);
+      color: #ffffff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header img {
+      width: 64px;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 32px 30px;
+      color: #333333;
+    }
+    .content h2 {
+      color: #ff6b6b;
+      font-size: 22px;
+      margin-top: 0;
+    }
+    .content p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .footer {
+      background-color: #f8fbff;
+      text-align: center;
+      padding: 20px;
+      color: #666666;
+      font-size: 13px;
+    }
+    .footer a {
+      color: #ff6b6b;
+      text-decoration: none;
+    }
+    @media (max-width: 600px) {
+      .content, .header, .footer {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body style="background: #f2f6ff;">
+  <table>
+    <tr>
+      <td class="header">
+        <img src="https://res.cloudinary.com/dglwzejwk/image/upload/v1750157677/logoblack_ly0mlm.png" alt="Kindify Logo" />
+        <h1>Thank You for Being With Us!</h1>
+        <p>Your presence made a difference.</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="content">
+        <h2>Hi ${name || 'Friend'},</h2>
+        <p>
+          We noticed you've chosen to leave Kindify. While we’re sad to see you go, we just wanted to say <strong>thank you</strong> for the time you spent with us.
+        </p>
+        <p>
+          Your support, generosity, and kindness have truly made an impact. Every moment you were here, you helped contribute to something bigger.
+        </p>
+        <p>
+          Should you ever wish to return, we'll be here to welcome you back with open arms.
+        </p>
+        <p>If you have any feedback, suggestions, or if you ever need help, don’t hesitate to reach out to us.</p>
+        <p>With heartfelt thanks,<br><strong>The Kindify Team</strong></p>
+      </td>
+    </tr>
+    <tr>
+      <td class="footer">
+        <p>&copy; ${new Date().getFullYear()} Kindify. All rights reserved.</p>
+        <p>
+          <a href="https://kindify.org">www.kindify.org</a> |
+          <a href="mailto:support@kindify.org">support@kindify.org</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+
+    // Define the email options
+    const mailOptions = {
+      from: `"from Kindify Organization" <${process.env.DISPLAY_EMAIL}>`, // sender address
+      to: receiverEmail, // list of receivers
+      subject: subject, // Subject line
+      html: html // HTML body
+    };
+
+    // Send mail
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        throw new Error('Error sending email: ' + error.message);
+      }
+      console.log('Message sent: %s', info.messageId);
+    });
+  },
+  
   otpMailForUser: async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: process.env.SERVICE,
@@ -626,6 +763,8 @@ const EmailUtlis = {
     })
 
   },
+
+
 }
 
 export default EmailUtlis;
