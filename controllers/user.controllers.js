@@ -201,7 +201,7 @@ const userController = {
             }
 
             // Check if user exists
-            const user = await userServices.getUserByEmail(email,role);
+            const user = await userServices.getUserByEmail(email, role);
 
             if (!user) {
                 throw new Error("User not found");
@@ -238,7 +238,7 @@ const userController = {
 
     },
 
-    resetPasswordUsingOTP:async(req,res)=>{
+    resetPasswordUsingOTP: async (req, res) => {
         try {
             const { email, newPassword, otp } = req.body;
             const role = req.params.role;
@@ -268,20 +268,24 @@ const userController = {
             // Save the updated user
             await user.save();
 
-            return res.status(200).json({ message: "Password changed successfully" ,success:true});
+            return res.status(200).json({ message: "Password changed successfully", success: true });
 
         } catch (error) {
-            return res.status(500).json({ message: error.message,success:false });
+            return res.status(500).json({ message: error.message, success: false });
         }
     },
 
     updatePassword: async (req, res) => {
         try {
-            const { email, oldPassword, newPassword } = req.body;
-            const role = req.params.role;
+            const { currentPassword, newPassword } = req.body;
+            const { email, role } = req.user; // Assuming user ID is stored in req.user
 
-            if (!email || !oldPassword || !newPassword) {
+            if (!email || !currentPassword || !newPassword) {
                 throw new Error("Email, old password and new password are required");
+            }
+
+            if (currentPassword === newPassword) {
+                throw new Error("New password cannot be the same as the old password");
             }
 
             // Fetch user based on email and role
@@ -292,8 +296,8 @@ const userController = {
             }
 
             // Check if old password is correct
-            const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
-            if (!isOldPasswordValid) {
+            const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+            if (!isCurrentPasswordValid) {
                 throw new Error("Old password is incorrect");
             }
 
@@ -305,6 +309,31 @@ const userController = {
             await user.save();
 
             return res.status(200).json({ message: "Password updated successfully", success: true });
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message, success: false });
+        }
+    },
+
+    deleteAccount: async (req, res) => {
+        try {
+            const { email, role } = req.user; // Assuming user ID is stored in req.user
+
+            if (!email) {
+                throw new Error("Email is required");
+            }
+
+            // Fetch user based on email and role
+            const user = await userServices.getUserByEmail(email, role);
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            // Delete the user
+            await userServices.deletUserAccount(email, role);
+
+            return res.status(200).json({ message: "Account deleted successfully", success: true });
 
         } catch (error) {
             return res.status(500).json({ message: error.message, success: false });

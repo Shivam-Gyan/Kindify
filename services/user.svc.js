@@ -1,3 +1,4 @@
+import NgoModel from "../models/ngos.model.js";
 import UserModel from "../models/user.model.js";
 import EmailUtlis from "../utils/email.utils.js";
 
@@ -55,13 +56,13 @@ const userServices = {
         }
     },
 
-    getUserByEmail: async (email,role) => {
+    getUserByEmail: async (email, role) => {
         try {
             if (!email) {
                 throw new Error("oops! Email is required");
             }
 
-            const user = await UserModel.findOne({ email: email ,role: role });
+            const user = await UserModel.findOne({ email: email, role: role });
 
             if (!user) {
                 throw new Error("user not found with this email");
@@ -78,6 +79,41 @@ const userServices = {
         await UserModel.deleteOne({
             email: email
         });
+    },
+
+    deletUserAccount: async (email, role) => {
+        try {
+            if (!email || !role) {
+                throw new Error("Email and role are required");
+            }
+
+            // delete user from database
+            const deletedUser = await UserModel.findOneAndDelete({ email: email, role: role });
+            
+            if (!deletedUser) {
+                throw new Error("User not found");
+            }
+
+            if (role === "ngo") {
+                // if user is ngo, then delete all the donations made by this ngo
+                const deletedNGO = await NgoModel.deleteOne({
+                    userObjectId: deletedUser._id
+                })
+
+                if (!deletedNGO) {
+                    throw new Error("Error in deleting NGO details");
+                }
+            }
+
+
+            // send email to user about account deletion
+            await EmailUtlis.sendAccountDeletionEmail({ name: deletedUser.name, receiverEmail: deletedUser.email, subject: "You’ve Made a Difference. Thank You for Your Time with Kindify" });
+
+            return true;
+
+        } catch (error) {
+            throw new Error("Error in deleteUserAccount service: " + error.message);
+        }
     }
 
 

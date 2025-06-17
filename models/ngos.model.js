@@ -118,6 +118,11 @@ const eventSchema = new mongoose.Schema({
 
 
 const ngoSchema = new mongoose.Schema({
+    userObjectId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     name: {
         type: String,
         required: true,

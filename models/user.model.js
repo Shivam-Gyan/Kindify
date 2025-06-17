@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         // required: true,
-        // unique: true,
+        unique: true,
         trim: true,
         minlength: 10,
         maxlength: 15,
@@ -37,11 +37,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
         minlength: 5,
-        maxlength: 200,
+        maxlength: 250,
     },
     role: {
         type: String,
         enum: ["donor","ngo","admin"],
+    },
+    profilePicture:{
+        type: String,
+        default: "https://tse4.mm.bing.net/th?id=OIP.fz29xDdt8iK_0EOsoMF5FwHaHa&pid=Api&P=0&h=180",
+        trim: true,
     },
 
     // if role is NGO, then this field will be used for find the person designsation in NGO who is resgistering.
