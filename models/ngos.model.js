@@ -3,6 +3,15 @@ import mongoose from 'mongoose';
 
 // Define the documents schema
 const documentsSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        trim: true
+    },
     documentType: {
         type: String,
         required: true,
@@ -52,16 +61,16 @@ const projectSchema = new mongoose.Schema({
         enum: ['ongoing', 'completed', 'planned'],
         default: 'planned'
     },
-    images:[{
+    images: [{
         type: String,
         trim: true
     }],
-    videos:[{
+    videos: [{
         type: String,
         trim: true
     }],
     collaborators: [{
-        type:String,
+        type: String,
         trim: true
     }],
 });
@@ -82,7 +91,7 @@ const donorsSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    followedAt:{
+    followedAt: {
         type: Date,
         default: Date.now
     }
@@ -115,10 +124,22 @@ const eventSchema = new mongoose.Schema({
     }
 });
 
+const accountDetailsSchema = new mongoose.Schema(
+    {
+        upiId: { type: String, trim: true },
+        razorpayPaymentLink: { type: String, trim: true },
+        bankName: { type: String, trim: true },
+        accountHolderName: { type: String, trim: true },
+        accountNumber: { type: String, trim: true },
+        ifscCode: { type: String, trim: true },
+        preferredMethod: { type: String, enum: ['upi', 'bank', 'razorpay'], default: 'upi' }
+    }
+)
+
 
 
 const ngoSchema = new mongoose.Schema({
-    userObjectId:{
+    userObjectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -174,7 +195,7 @@ const ngoSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    documents:[documentsSchema],
+    documents: [documentsSchema],
     logo: {
         type: String,
         trim: true
@@ -202,12 +223,50 @@ const ngoSchema = new mongoose.Schema({
 
     // "donors" is an array of objects representing the donors associated with the NGO.
     donors: [donorsSchema],
-    
+
     // "events" is an array of objects representing the events organized by the NGO.
     events: [eventSchema],
+    averageRatings: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5
+    },
+    totalRatings: {
+        type: Number,
+        default: 0
+    },
+    ratings: [{
+        donorObjectId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        rating: {
+            type: Number,
+            min: 0,
+            max: 5
 
-    
-},{timestamps: true});
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+    // "donationCount" is the total number of donations received by the NGO.
+    donationCount: { type: Number, default: 0 },
+    // "searchCount" is the number of times the NGO has been searched for in the platform.
+    searchCount: { type: Number, default: 0 },
+
+    // donation schema
+    donations: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Donation'
+    }],
+
+    // Ngo account details ( bank account, UPI, etc. )
+    accountDetails: [accountDetailsSchema],
+
+}, { timestamps: true });
 
 const NgoModel = mongoose.model('NGO', ngoSchema);
 

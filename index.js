@@ -5,12 +5,12 @@ import express from 'express';
 import cors from 'cors';
 import db from './config/mongoose.database.js'
 import { globalLimiter } from './middlewares/rate.limiter.middleware.js';
-import cors from 'cors'
 import fileUpload from 'express-fileupload'
 
 // Importing user routes
 import userRouter from './routes/user.route.js';
 import DonorRouter from './routes/donor.route.js';
+import ContactAndQueryRouter from './routes/contactAndQuery.route.js';
 
 const app = express();
 
@@ -50,6 +50,7 @@ app.get('/health', (req, res) => {
 // Using user routes
 app.use('/api/user', userRouter);
 app.use('/api/donor', DonorRouter); 
+app.use('/api/contact',ContactAndQueryRouter)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

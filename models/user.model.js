@@ -26,13 +26,36 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     phone: {
-        type: String,
-        // required: true,
-        unique: true,
-        trim: true,
-        minlength: 10,
-        maxlength: 15,
+        countryCode: {
+            type: String,
+            trim: true,
+            required: false,
+            validate: {
+                validator: function (v) {
+                    return /^\+\d{1,3}$/.test(v); // Validates country code format like +91, +1, etc.
+                },
+                message: props => `${props.value} is not a valid country code!`
+            }
+        },
+        number: {
+            type: String,
+            trim: true,
+            required: false,
+            validate: {
+                validator: function (v) {
+                    return /^\d{10}$/.test(v); // Validates phone number format like 1234567890
+                },
+                message: props => `${props.value} is not a valid phone number!`
+            }
+        },
+        fullNumber: {
+            type: String,
+            trim: true,
+            required: false,
+
+        }
     },
+    
     address: {
         type: String,
         trim: true,
@@ -41,38 +64,42 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["donor","ngo","admin"],
+        enum: ["donor", "ngo", "admin"],
     },
-    profilePicture:{
+    profilePicture: {
         type: String,
         default: "https://tse4.mm.bing.net/th?id=OIP.fz29xDdt8iK_0EOsoMF5FwHaHa&pid=Api&P=0&h=180",
         trim: true,
     },
-
-    // if role is NGO, then this field will be used for find the person designsation in NGO who is resgistering.
-    // only for NGO role not for donor or admin
-    designation: {
-        type: String,
-        trim: true,
-        enum: ["Manager", "Volunteer", "Coordinator", "Other"],
-        default: "Other",
-    },  
     otp: {
         type: String,
         trim: true,
     },
-    otpExpiry:{
+    otpExpiry: {
         type: Date,
         default: Date.now,
     },
-    followedNgos: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Ngo",
-    }],
-    
+    nationality: {
+        type: String,
+        trim: true,
+        minlength: 2,
+        maxlength: 50,
+    },
+    gender: {
+        type: String,
+        enum: ["Male", "Female", "Other"],
+    },
+}, { timestamps: true });
 
-},{timestamps: true});
-
+// Pre-save hook to set the full phone number
+userSchema.pre("save", function (next) {
+    if (this.phone.countryCode && this.phone.number) {
+        this.phone.fullNumber = `${this.phone.countryCode}${this.phone.number}`;
+    } else {
+        this.phone.fullNumber = null; // or handle as needed
+    }
+    next();
+});
 
 const UserModel = mongoose.model("User", userSchema);
 

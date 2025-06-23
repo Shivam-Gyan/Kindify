@@ -50,7 +50,12 @@ const donationSchema = new mongoose.Schema({
   donatedAt: {
     type: Date,
     default: Date.now,
-  }
+  },
+  feedback: {
+    type: String, // Optional feedback from donor after donation
+    maxlength: 500, // Limit feedback length
+    trim: true, // Remove leading/trailing whitespace
+  },
 }, {
   timestamps: true
 });
