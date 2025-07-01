@@ -51,6 +51,10 @@ const donationSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // purpose means if donated to project/campaign then its Id
+  campaignId:{
+    type:String,
+  },
   feedback: {
     type: String, // Optional feedback from donor after donation
     maxlength: 500, // Limit feedback length

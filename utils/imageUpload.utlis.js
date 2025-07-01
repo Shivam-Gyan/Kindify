@@ -10,12 +10,8 @@ cloudinary.v2.config({
 
 const uploadImage = async (req, res) => {
     try {
-        // if (!req.files || Object.keys(req.files).length == 0) {
-        //     throw new Error("No files were uploaded.");
-        // }
         const { image } = req.files;
         let cloudinaryResponse;
-
 
         cloudinaryResponse = await cloudinary.uploader.upload(
             image.tempFilePath

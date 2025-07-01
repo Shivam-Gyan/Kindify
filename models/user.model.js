@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema({
         countryCode: {
             type: String,
             trim: true,
-            required: false,
             validate: {
                 validator: function (v) {
                     return /^\+\d{1,3}$/.test(v); // Validates country code format like +91, +1, etc.
@@ -40,7 +39,6 @@ const userSchema = new mongoose.Schema({
         number: {
             type: String,
             trim: true,
-            required: false,
             validate: {
                 validator: function (v) {
                     return /^\d{10}$/.test(v); // Validates phone number format like 1234567890
@@ -51,11 +49,11 @@ const userSchema = new mongoose.Schema({
         fullNumber: {
             type: String,
             trim: true,
-            required: false,
+            sparse: true  // allows multiple null/undefined values
 
         }
     },
-    
+
     address: {
         type: String,
         trim: true,
@@ -80,15 +78,17 @@ const userSchema = new mongoose.Schema({
         default: Date.now,
     },
     nationality: {
-        type: String,
-        trim: true,
-        minlength: 2,
-        maxlength: 50,
-    },
-    gender: {
-        type: String,
-        enum: ["Male", "Female", "Other"],
-    },
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        code: {
+            type: String,
+            required: true,
+            trim: true,
+        }
+    }
 }, { timestamps: true });
 
 // Pre-save hook to set the full phone number
@@ -96,7 +96,7 @@ userSchema.pre("save", function (next) {
     if (this.phone.countryCode && this.phone.number) {
         this.phone.fullNumber = `${this.phone.countryCode}${this.phone.number}`;
     } else {
-        this.phone.fullNumber = null; // or handle as needed
+        this.phone.fullNumber = undefined; // or handle as needed
     }
     next();
 });

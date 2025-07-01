@@ -46,14 +46,18 @@ const projectSchema = new mongoose.Schema({
         trim: true
     },
     startDate: {
-        type: Date,
+        type: String,
         required: true
     },
     endDate: {
-        type: Date
+        type: String,
+        required: true
     },
-    budget: {
-        type: Number,
+    total_donations: {
+        type: String,
+    },
+    goal: {
+        type: String,
         required: true
     },
     status: {
@@ -73,6 +77,15 @@ const projectSchema = new mongoose.Schema({
         type: String,
         trim: true
     }],
+    likes: {
+        type: String,
+        default: "0"
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+
 });
 
 // Define the donors schema
@@ -92,7 +105,7 @@ const donorsSchema = new mongoose.Schema({
         default: 0
     },
     followedAt: {
-        type: Date,
+        type: String,
         default: Date.now
     }
 });
@@ -159,10 +172,21 @@ const ngoSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
     officialContactPhone: {
         type: String,
-        trim: true
+        trim: true,
+        validate: {
+            validator: function (v) {
+                return /^\d{10}$/.test(v); // allows only 10-digit numeric Indian phone numbers
+            },
+            message: props => `${props.value} is not a valid 10-digit phone number!`
+        }
     },
+
     address: {
         street: String,
         city: String,
