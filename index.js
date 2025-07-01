@@ -11,6 +11,7 @@ import fileUpload from 'express-fileupload'
 import userRouter from './routes/user.route.js';
 import DonorRouter from './routes/donor.route.js';
 import ContactAndQueryRouter from './routes/contactAndQuery.route.js';
+import NgoRouter from './routes/ngo.route.js';
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.get('/health', (req, res) => {
 app.use('/api/user', userRouter);
 app.use('/api/donor', DonorRouter); 
 app.use('/api/contact',ContactAndQueryRouter)
+app.use('/api/ngo', NgoRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

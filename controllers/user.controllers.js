@@ -3,6 +3,7 @@ import Validation from "../utils/validation.utlis.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import EmailUtlis from "../utils/email.utils.js";
+import { getCountryCallingCode } from 'libphonenumber-js';
 
 const userController = {
 
@@ -11,12 +12,12 @@ const userController = {
     registerUser: async (req, res) => {
         try {
             // destructure the email, password and role from the request body
-            let { name, email, password } = req.body;
+            let { name, email, nationality, password } = req.body;
 
             const role = req.params.role; // get the role from the request params
 
             // check if email, password and role are provided
-            if (!name || !email || !password || !role) {
+            if (!name || !email || !password || !nationality || !role) {
                 throw new Error("all fields are required");
             }
             // check if role is valid
@@ -49,16 +50,16 @@ const userController = {
             // <----------------------------------------------------------------->
             // if role is donor, then call the loginDonor service
             if (role === 'donor') {
-                donor = await userServices.registerDonorService({ name, email, password });
+                donor = await userServices.registerDonorService({ name, email, password, nationality });
                 if (!donor) {
                     throw new Error("Invalid email or password");
                 }
 
                 // Generate OTP for email verification
-                    const otpObject = EmailUtlis.generateOtp();
-                    donor.otp = otpObject.otp;
-                    donor.otpExpiry = otpObject.otpExpiry;
-                    await donor.save();
+                const otpObject = EmailUtlis.generateOtp();
+                donor.otp = otpObject.otp;
+                donor.otpExpiry = otpObject.otpExpiry;
+                await donor.save();
 
                 // Send OTP email
                 try {
@@ -76,22 +77,22 @@ const userController = {
                     // Don't throw error, just log it
                 }
 
-                    return res.status(200).json({
-                        message: "Donor registered successfully. Please verify your email.",
-                        success: true,
-                        user: {
+                return res.status(200).json({
+                    message: "Donor registered successfully. Please verify your email.",
+                    success: true,
+                    user: {
                         name: donor.name,
-                            email: email,
-                            role: role,
+                        email: email,
+                        role: role,
                         isEmailVerified: false
-                        }
-                    });
+                    }
+                });
             }
 
             //<----------------------------------------------------------------->
             // if role is ngo, then handle NGO registration logic
             if (role === 'ngo') {
-                ngo = await userServices.registerNgoService({ name, email, password });
+                ngo = await userServices.registerNgoService({ name, email, password,nationality });
                 if (!ngo) {
                     throw new Error("Invalid email or password");
                 }
@@ -217,6 +218,8 @@ const userController = {
             });
         }
     },
+
+
 
     forgotPassword: async (req, res) => {
         try {
@@ -361,6 +364,42 @@ const userController = {
             await userServices.deletUserAccount(email, role);
 
             return res.status(200).json({ message: "Account deleted successfully", success: true });
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message, success: false });
+        }
+    },
+    updatePhoneProfileImage: async (req, res) => {
+        try {
+            // code is country code 
+            const { email, role, phone, code, imageUrl } = req.body;
+            if(role !=="donor"){
+                return res.status(400).json({ message: "Only donor can update phone and profile image", success: false });
+            }
+            
+            if (!email || !role || !phone || !code || !imageUrl) {
+                throw new Error("Email, role, phone, code and imageUrl are required");
+            }
+
+            const getUser = await userServices.getUserByEmail(email, role);
+
+            const phoneCode = getCountryCallingCode(code)
+
+            const phoneFormat = {
+                countryCode:"+" + phoneCode,
+                number: phone,
+            }
+
+
+            getUser.phone = phoneFormat;
+            getUser.profilePicture = imageUrl;
+
+            await getUser.save();
+
+            res.status(200).json({
+                message: "Phone number and profile image updated successfully",
+                success: true,
+            });
 
         } catch (error) {
             return res.status(500).json({ message: error.message, success: false });

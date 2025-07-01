@@ -23,8 +23,9 @@ userRouter
     .post('/reset-password/:role',userController.resetPasswordUsingOTP)
     .post('/update-password',jwtAuthMiddleware,userController.updatePassword)
     .post('/resend-otp/:role',EmailUtlis.resendOtp)
-    .post('/upload-profile-picture',jwtAuthMiddleware,uploadImage)
+    .post('/upload-profile-picture',uploadImage)
     .delete('/delete-account',jwtAuthMiddleware,userController.deleteAccount)
+    .post('/update-phone-image',userController.updatePhoneProfileImage)
 
 
 export default userRouter;

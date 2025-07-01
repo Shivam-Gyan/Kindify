@@ -6,10 +6,10 @@ const userServices = {
 
     registerDonorService: async (data) => {
         try {
-            const { name, email, password } = data;
+            const { name, email, password,nationality } = data;
 
-            if (!name || !email || !password) {
-                throw new Error("Email and password are required");
+            if (!name || !email || !password ||!nationality) {
+                throw new Error("Something missing in register service of donor");
             }
 
             const donor = await UserModel.create({
@@ -17,6 +17,7 @@ const userServices = {
                 email: email,
                 password: password,
                 role: "donor",
+                nationality:nationality
             });
 
             return donor;
@@ -32,9 +33,9 @@ const userServices = {
 
     registerNgoService: async (data) => {
         try {
-            const { name, email, password } = data;
+            const { name, email, password,nationality } = data;
 
-            if (!name || !email || !password) {
+            if (!name || !email || !password || !nationality) {
                 throw new Error("Email and password are required");
             }
 
@@ -43,6 +44,7 @@ const userServices = {
                 email: email,
                 password: password,
                 role: "ngo",
+                nationality:nationality
             });
 
             return ngo;
