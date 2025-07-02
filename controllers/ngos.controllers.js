@@ -1,5 +1,6 @@
 import NgoServices from '../services/ngo.svc.js'
 import puppeteer from "puppeteer";
+import axios from 'axios';
 
 
 
@@ -186,7 +187,7 @@ const NgoController = {
     AddAccountDetailsController: async (req, res) => {
         try {
 
-            const { email,role, bankName, accountHolderName, accountNumber, ifscCode, upiId, razorpayPaymentLink, preferredMethod } = req.body;
+            const { email, role, bankName, accountHolderName, accountNumber, ifscCode, upiId, razorpayPaymentLink, preferredMethod } = req.body;
 
             if (role !== 'ngo') {
                 return res.status(403).json({
@@ -195,7 +196,7 @@ const NgoController = {
                 });
             }
 
-            if(!bankName|| !accountHolderName||! accountNumber||! ifscCode||! upiId||! razorpayPaymentLink||! preferredMethod){
+            if (!bankName || !accountHolderName || !accountNumber || !ifscCode || !upiId || !razorpayPaymentLink || !preferredMethod) {
                 return res.status(400).json({
                     success: false,
                     message: "All fields are required to add account details"
@@ -226,6 +227,60 @@ const NgoController = {
             res.status(500).json({
                 success: false,
                 message: `Error adding account details: ${error.message}`
+            });
+        }
+    },
+
+    addAddresAndLogoController: async (req, res) => {
+        try {
+            const { officialContactEmail, role, postalCode, logo } = req.body;
+
+            // if (role !== 'ngo') {
+            //     return res.status(403).json({
+            //         success: false,
+            //         message: "Access denied. Only NGOs can update their profile."
+            //     });
+            // }
+
+
+
+            // if (!postalCode || !logo || !officialContactEmail) {
+            //     return res.status(400).json({
+            //         success: false,
+            //         message: "Address and logo are required"
+            //     });
+            // }
+
+            let details = await axios.get("https://api.postalpincode.in/pincode/" + postalCode)
+            details = details.data[0].PostOffice[0]
+
+            if(!details || !details.Pincode ) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Invalid postal code or no details found"
+                });
+            }
+
+            const formatedAddress = {
+                city: details.Region ,
+                state: details.State,
+                district: details.District,
+                postalCode: details.Pincode,
+                country: details.Country,
+            }
+
+            const updatedNgoProfile = await NgoServices.addAddressAndLogoService({ officialContactEmail, address:formatedAddress, logo });
+
+            res.status(200).json({
+                success: true,
+                message: "NGO profile updated successfully",
+                data: updatedNgoProfile
+            });
+
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: `${error.message}`
             });
         }
     }

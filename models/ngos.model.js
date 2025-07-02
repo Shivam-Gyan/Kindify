@@ -191,6 +191,7 @@ const ngoSchema = new mongoose.Schema({
         street: String,
         city: String,
         state: String,
+        district: String,
         postalCode: String,
         country: String
     },

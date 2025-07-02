@@ -8,10 +8,10 @@ const NgoServices = {
     registerNgoService: async (data) => {
         try {
             const { name, role, email, registrationNumber, officialContactPhone, officialContactEmail } = data;
-            if (!name || !email ||!role || !registrationNumber || !officialContactPhone || !officialContactEmail) {
+            if (!name || !email || !role || !registrationNumber || !officialContactPhone || !officialContactEmail) {
                 throw new Error("All fields are required for NGO registration");
             }
-            if(!/^\d{10}$/.test(officialContactPhone)) {
+            if (!/^\d{10}$/.test(officialContactPhone)) {
                 throw new Error("Official contact phone must be a 10-digit number");
             }
 
@@ -24,13 +24,20 @@ const NgoServices = {
                 registrationNumber,
                 officialContactEmail,
                 officialContactPhone,
+                address: {
+                    street: "",
+                    city: "",
+                    state: "",
+                    postalCode: "",
+                    country: ngoUser.nationality?.name
+                },
                 isEmailVerified: false, // Default to false, can be updated later
                 isVerified: false, // Default to false, can be updated later
             });
             // await EmailUtlis.sendVerificationEmail(email, verificationToken);
             return ngoProfile;
         } catch (error) {
-            
+
             throw new Error("Error in registerNgo service: " + error.message);
         }
     },
@@ -118,6 +125,29 @@ const NgoServices = {
             return updatedNgoAccount;
         } catch (error) {
             throw new Error(`Error adding account details: ${error.message}`);
+        }
+    },
+
+    addAddressAndLogoService: async ({ officialContactEmail, address, logo }) => {
+        try {
+            if (!logo || !address ||!officialContactEmail) {
+                throw new Error("User ID and address are required");
+            }
+
+            // Update the NGO's address and logo
+            const updatedNgo = await NgoModel.findOneAndUpdate(
+                {officialContactEmail: officialContactEmail },
+                { $set: { address, logo } },
+                { new: true }
+            );
+
+            if (!updatedNgo) {
+                throw new Error("NGO not found or update failed");
+            }
+
+            return updatedNgo;
+        } catch (error) {
+            throw new Error(`Error updating NGO address and logo: ${error.message}`);
         }
     }
 

@@ -13,6 +13,7 @@ NgoRouter
     .post('/verify-registration-number', NgoController.verifyNgoRegistrationNumber)
     .post('/register-ngo', NgoController.registerNgoController)
     .post('/add-account-details', NgoController.AddAccountDetailsController)
+    .post('/add-address-and-logo', NgoController.addAddresAndLogoController)
 
 
 export default NgoRouter;
