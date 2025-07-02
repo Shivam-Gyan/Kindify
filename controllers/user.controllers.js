@@ -14,18 +14,20 @@ const userController = {
             // destructure the email, password and role from the request body
             let { name, email, nationality, password } = req.body;
 
+            console.log("Registering user with data:", req.body);
+
             const role = req.params.role; // get the role from the request params
 
             // check if email, password and role are provided
             if (!name || !email || !password || !nationality || !role) {
-                throw new Error("all fields are required");
+               return res.status(400).json({ message: "Name, email, password is required", success: false });
             }
             // check if role is valid
             const checkUserExistsWithEmail = await userServices.checkUserExistsWithEmail(email);
 
             // if user with email already exists, then return error
             if (checkUserExistsWithEmail) {
-                throw new Error(`${role.charAt(0).toUpperCase() + role.slice(1)} with this email already exists`);
+               return res.status(400).json({ message: "User with this email already exists", success: false });
             }
 
             // validate the password using the passwordValidation function from validation utils
@@ -33,14 +35,14 @@ const userController = {
 
             // if password is not valid, then return error
             if (!passwordValidation.valid) {
-                throw new Error(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
+               return res.status(400).json({ message: passwordValidation.message, success: false });
             }
 
             password = await bcrypt.genSalt(10)
                 .then(salt => {
                     return bcrypt.hash(password, salt);
                 }).catch(error => {
-                    throw new Error("Error hashing password: " + error.message);
+                    return res.status(500).json({ message: "Error hashing password", success: false });
                 });
 
             // declaring the donor variable here to use it globally in try block
