@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import EmailUtlis from "../utils/email.utils.js";
 import { getCountryCallingCode } from 'libphonenumber-js';
+import NgoServices from "../services/ngo.svc.js";
 
 const userController = {
 
@@ -20,14 +21,14 @@ const userController = {
 
             // check if email, password and role are provided
             if (!name || !email || !password || !nationality || !role) {
-               return res.status(400).json({ message: "Name, email, password is required", success: false });
+                return res.status(400).json({ message: "Name, email, password is required", success: false });
             }
             // check if role is valid
             const checkUserExistsWithEmail = await userServices.checkUserExistsWithEmail(email);
 
             // if user with email already exists, then return error
             if (checkUserExistsWithEmail) {
-               return res.status(400).json({ message: "User with this email already exists", success: false });
+                return res.status(400).json({ message: "User with this email already exists", success: false });
             }
 
             // validate the password using the passwordValidation function from validation utils
@@ -35,7 +36,7 @@ const userController = {
 
             // if password is not valid, then return error
             if (!passwordValidation.valid) {
-               return res.status(400).json({ message: passwordValidation.message, success: false });
+                return res.status(400).json({ message: passwordValidation.message, success: false });
             }
 
             password = await bcrypt.genSalt(10)
@@ -94,7 +95,7 @@ const userController = {
             //<----------------------------------------------------------------->
             // if role is ngo, then handle NGO registration logic
             if (role === 'ngo') {
-                ngo = await userServices.registerNgoService({ name, email, password,nationality });
+                ngo = await userServices.registerNgoService({ name, email, password, nationality });
                 if (!ngo) {
                     throw new Error("Invalid email or password");
                 }
@@ -157,6 +158,7 @@ const userController = {
             const { email, password } = req.body;
             const role = req.params.role;
 
+            console.log({ email, role, password })
             if (!email || !password) {
                 throw new Error("Email and password are required");
             }
@@ -205,6 +207,7 @@ const userController = {
             return res.status(200).json({
                 message: `${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`,
                 token,
+                success: true,
                 user: {
                     name: user.name,
                     email: user.email,
@@ -262,7 +265,7 @@ const userController = {
                 throw new Error('Failed to send OTP email.');
             }
 
-            return res.status(200).json({ message: "OTP sent to your email" });
+            return res.status(200).json({ message: "OTP sent to your email", success: true });
 
         } catch (error) {
             return res.status(500).json({ message: error.message });
@@ -375,10 +378,10 @@ const userController = {
         try {
             // code is country code 
             const { email, role, phone, code, imageUrl } = req.body;
-            if(role !=="donor"){
+            if (role !== "donor") {
                 return res.status(400).json({ message: "Only donor can update phone and profile image", success: false });
             }
-            
+
             if (!email || !role || !phone || !code || !imageUrl) {
                 throw new Error("Email, role, phone, code and imageUrl are required");
             }
@@ -388,7 +391,7 @@ const userController = {
             const phoneCode = getCountryCallingCode(code)
 
             const phoneFormat = {
-                countryCode:"+" + phoneCode,
+                countryCode: "+" + phoneCode,
                 number: phone,
             }
 
@@ -401,6 +404,37 @@ const userController = {
             res.status(200).json({
                 message: "Phone number and profile image updated successfully",
                 success: true,
+            });
+
+        } catch (error) {
+            return res.status(500).json({ message: error.message, success: false });
+        }
+    },
+
+    getUserProfileController: async (req, res) => {
+        try {
+            const { email, role } = req.user; // Assuming user ID is stored in req.user
+
+            if (!email || !role) {
+                throw new Error("Email and role are required");
+            }
+
+            // Fetch user based on email and role
+            const user = await userServices.getUserByEmail(email, role);
+            var getNgoProfile;
+            if (role === 'ngo') {
+                getNgoProfile = await NgoServices.getNgoProfileByEmail({ userObjectId: user._id });
+            }
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            return res.status(200).json({
+                message: "User profile fetched successfully",
+                success: true,
+                user: user,
+                ngoProfile: role === 'ngo' ? getNgoProfile : {}
             });
 
         } catch (error) {

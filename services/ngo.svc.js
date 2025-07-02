@@ -149,6 +149,24 @@ const NgoServices = {
         } catch (error) {
             throw new Error(`Error updating NGO address and logo: ${error.message}`);
         }
+    },
+
+    getNgoProfileByEmail: async ({ userObjectId }) => {
+        try {
+            if (!userObjectId) {
+                throw new Error("User ID is required to fetch NGO profile");
+            }
+
+            const ngoProfile = await NgoModel.findOne({ userObjectId: userObjectId });
+
+            if (!ngoProfile) {
+                throw new Error("NGO profile not found");
+            }
+
+            return ngoProfile;
+        } catch (error) {
+            throw new Error(`${error.message}`);
+        }
     }
 
 
