@@ -26,6 +26,7 @@ userRouter
     .post('/upload-profile-picture',uploadImage)
     .delete('/delete-account',jwtAuthMiddleware,userController.deleteAccount)
     .post('/update-phone-image',userController.updatePhoneProfileImage)
+    .get('/profile',jwtAuthMiddleware,userController.getUserProfileController)
 
 
 export default userRouter;

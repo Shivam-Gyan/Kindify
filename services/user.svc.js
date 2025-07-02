@@ -84,7 +84,7 @@ const userServices = {
                 throw new Error("oops! Email is required");
             }
 
-            const user = await UserModel.findOne({ email: email, role: role });
+            const user = await UserModel.findOne({ email: email, role: role }).select('+password -__v');
 
             if (!user) {
                 throw new Error("user not found with this email");
@@ -93,7 +93,7 @@ const userServices = {
             return user;
 
         } catch (error) {
-            throw new Error("Error in getUserByEmail service: " + error.message);
+            throw new Error(error.message);
         }
     },
 
