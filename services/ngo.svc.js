@@ -49,9 +49,9 @@ const NgoServices = {
             const filter = {};
 
             // 📍 Location filters
-            if (country) filter['address.country'] = country;
-            if (state) filter['address.state'] = state;
-            if (city) filter['address.city'] = city;
+            if (country) filter['address.country'] = country.toLowerCase();
+            if (state) filter['address.state'] = state.toLowerCase();
+            if (city) filter['address.city'] = city.toLowerCase();
 
             // ✅ Certified (true/false string to boolean)
             if (certified) {

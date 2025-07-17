@@ -46,7 +46,7 @@ const NgoController = {
     filterNgosController: async (req, res) => {
 
         try {
-
+            console.log("Filtering NGOs with query:", req.query);
             const ngos = await NgoServices.filterNgosServices(req)
 
             // If no NGOs found, return a message
@@ -262,11 +262,11 @@ const NgoController = {
             }
 
             const formatedAddress = {
-                city: details.Region ,
-                state: details.State,
-                district: details.District,
+                city: details.Region.toLowerCase(),
+                state: details.State.toLowerCase(),
+                district: details.District.toLowerCase(),
                 postalCode: details.Pincode,
-                country: details.Country,
+                country: details.Country.toLowerCase(),
             }
 
             const updatedNgoProfile = await NgoServices.addAddressAndLogoService({ officialContactEmail, address:formatedAddress, logo });
