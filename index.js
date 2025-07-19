@@ -41,7 +41,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // limiting the number of request globally
-app.use(globalLimiter); 
+// app.use(globalLimiter); 
 
 // Health check endpoint
 app.get('/health', (req, res) => {

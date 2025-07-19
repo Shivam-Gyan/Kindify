@@ -89,7 +89,15 @@ const userSchema = new mongoose.Schema({
             required: true,
             trim: true,
         }
-    }
+    },
+    followingNgos: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ngo"
+    }],
+    favoriteNgos: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ngo"
+    }]
 }, { timestamps: true });
 
 // Pre-save hook to set the full phone number
