@@ -1,6 +1,7 @@
 import NgoServices from '../services/ngo.svc.js'
 import puppeteer from "puppeteer";
 import axios from 'axios';
+import UserModel from '../models/user.model.js';
 
 
 
@@ -235,26 +236,24 @@ const NgoController = {
         try {
             const { officialContactEmail, role, postalCode, logo } = req.body;
 
-            // if (role !== 'ngo') {
-            //     return res.status(403).json({
-            //         success: false,
-            //         message: "Access denied. Only NGOs can update their profile."
-            //     });
-            // }
+            if (role !== 'ngo') {
+                return res.status(403).json({
+                    success: false,
+                    message: "Access denied. Only NGOs can update their profile."
+                });
+            }
 
-
-
-            // if (!postalCode || !logo || !officialContactEmail) {
-            //     return res.status(400).json({
-            //         success: false,
-            //         message: "Address and logo are required"
-            //     });
-            // }
+            if (!postalCode || !logo || !officialContactEmail) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Address and logo are required"
+                });
+            }
 
             let details = await axios.get("https://api.postalpincode.in/pincode/" + postalCode)
             details = details.data[0].PostOffice[0]
 
-            if(!details || !details.Pincode ) {
+            if (!details || !details.Pincode) {
                 return res.status(404).json({
                     success: false,
                     message: "Invalid postal code or no details found"
@@ -269,7 +268,7 @@ const NgoController = {
                 country: details.Country.toLowerCase(),
             }
 
-            const updatedNgoProfile = await NgoServices.addAddressAndLogoService({ officialContactEmail, address:formatedAddress, logo });
+            const updatedNgoProfile = await NgoServices.addAddressAndLogoService({ officialContactEmail, address: formatedAddress, logo });
 
             res.status(200).json({
                 success: true,
@@ -281,6 +280,66 @@ const NgoController = {
             res.status(500).json({
                 success: false,
                 message: `${error.message}`
+            });
+        }
+    },
+    getNgoDetailsController: async (req, res) => {
+        try {
+            const { ngoUserObjectId } = req.params;
+
+            if (!ngoUserObjectId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "User ID is required to fetch NGO details"
+                });
+            }
+
+            const ngoDetails = await NgoServices.getNgoDetailsServices({ userId: ngoUserObjectId });
+
+            res.status(200).json({
+                success: true,
+                message: "NGO details fetched successfully",
+                data: ngoDetails
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: `${error.message}`
+            });
+        }
+    },
+
+    followNgoController: async (req, res) => {
+        try {
+            const { ngoId, like, follow } = req.body.ngoId;
+
+            console.log("Following NGO with ID:", ngoId, "Like:", like, "Follow:", follow);
+            const { email } = req.user;
+
+            if (!ngoId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "NGO ID is required"
+                });
+            }
+            
+            const updatedUser = await NgoServices.followNgoService({
+                ngoId,
+                email: email,
+                like: Boolean(like),
+                follow: Boolean(follow)
+            });
+
+            res.status(200).json({
+                success: true,
+                message: `Successfully ${follow ? "followed" : ""}${like && follow ? " and " : ""}${like ? "liked" : ""} the NGO`,
+                data: updatedUser
+            });
+
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: `Error following/liking NGO: ${error.message}`
             });
         }
     }

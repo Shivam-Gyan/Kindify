@@ -130,14 +130,20 @@ const NgoServices = {
 
     addAddressAndLogoService: async ({ officialContactEmail, address, logo }) => {
         try {
-            if (!logo || !address ||!officialContactEmail) {
+            if (!logo || !address || !officialContactEmail) {
                 throw new Error("User ID and address are required");
             }
 
             // Update the NGO's address and logo
             const updatedNgo = await NgoModel.findOneAndUpdate(
-                {officialContactEmail: officialContactEmail },
+                { officialContactEmail: officialContactEmail },
                 { $set: { address, logo } },
+                { new: true }
+            );
+
+            await UserModel.findOneAndUpdate(
+                { email: officialContactEmail },
+                { $set: { address: address, logo: logo } },
                 { new: true }
             );
 
@@ -167,9 +173,112 @@ const NgoServices = {
         } catch (error) {
             throw new Error(`${error.message}`);
         }
+    },
+    // this is for donor to see ngo details
+    getNgoDetailsServices: async ({ userId }) => {
+        try {
+            if (!userId) {
+                throw new Error("User ID is required to fetch NGO details");
+            }
+            console.log("Fetching NGO details for user ID:", userId);
+            const ngoDetails = await NgoModel.findOne({ userObjectId: userId }).select('-accountDetails -__v').populate('userObjectId', 'name email phone ');
+            console.log(ngoDetails);
+            if (!ngoDetails) {
+                throw new Error("NGO details not found");
+            }
+
+            return ngoDetails;
+        } catch (error) {
+            throw new Error(`Error fetching NGO details: ${error.message}`);
+        }
+    },
+    followNgoService: async ({ email, ngoId, like, follow }) => {
+        console.log("Follow/Like NGO service called with:", { email, ngoId, like, follow });
+
+        try {
+            if (!email || !ngoId) {
+                throw new Error("User email and NGO ID are required");
+            }
+
+            const user = await UserModel.findOne({ email });
+            if (!user) throw new Error("User not found");
+            if (user.role !== 'donor') throw new Error("Only donors can perform this action");
+
+            const ngo = await NgoModel.findById(ngoId);
+            if (!ngo) throw new Error("NGO not found");
+
+            let updated = false;
+
+            // FOLLOW / UNFOLLOW
+            const isFollowing = user.followingNgos.includes(ngoId);
+            if (follow && !isFollowing) {
+                user.followingNgos.push(ngoId);
+
+                // Add to donors if not already added
+                const alreadyDonor = ngo.donors.some(d => d.donorId.toString() === user._id.toString());
+                if (!alreadyDonor) {
+                    ngo.donors.push({
+                        donorId: user._id,
+                        totalDonationAmount: 0,
+                        totalDonationsCount: 0
+                    });
+                }
+
+                updated = true;
+
+            } else if (!follow && isFollowing) {
+                // Unfollow logic
+                user.followingNgos = user.followingNgos.filter(id => id.toString() !== ngoId.toString());
+
+                // Remove donor if zero donation and not liked
+                const donorIndex = ngo.donors.findIndex(d => d.donorId.toString() === user._id.toString());
+                if (donorIndex !== -1) {
+                    const donor = ngo.donors[donorIndex];
+                    const hasDonated = donor.totalDonationAmount > 0 || donor.totalDonationsCount > 0;
+                    const stillLikes = user.favoriteNgos.includes(ngoId);
+
+                    if (!hasDonated && !stillLikes) {
+                        ngo.donors.splice(donorIndex, 1);
+                    }
+                }
+
+                updated = true;
+            }
+
+            // LIKE / UNLIKE
+            const isLiked = user.favoriteNgos.includes(ngoId);
+            if (like && !isLiked) {
+                user.favoriteNgos.push(ngoId);
+                updated = true;
+            } else if (!like && isLiked) {
+                user.favoriteNgos = user.favoriteNgos.filter(id => id.toString() !== ngoId.toString());
+
+                // Optional: Remove from donors if also not followed and never donated
+                const donorIndex = ngo.donors.findIndex(d => d.donorId.toString() === user._id.toString());
+                const isStillFollowing = user.followingNgos.includes(ngoId);
+                if (donorIndex !== -1) {
+                    const donor = ngo.donors[donorIndex];
+                    const hasDonated = donor.totalDonationAmount > 0 || donor.totalDonationsCount > 0;
+
+                    if (!hasDonated && !isStillFollowing) {
+                        ngo.donors.splice(donorIndex, 1);
+                    }
+                }
+
+                updated = true;
+            }
+
+            if (updated) {
+                await user.save();
+                await ngo.save();
+            }
+
+            return user;
+
+        } catch (error) {
+            throw new Error(`Service error: ${error.message}`);
+        }
     }
-
-
 
 }
 export default NgoServices;
